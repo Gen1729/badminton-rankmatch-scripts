@@ -2,15 +2,17 @@ const ss = SpreadsheetApp.getActiveSpreadsheet();
 const maleSheet = ss.getSheetByName("男子");
 const femaleSheet = ss.getSheetByName("女子");
 const rankMatchScheduleSheet = ss.getSheetByName("ランク戦日程");
+const configSheet = ss.getSheetByName("設定一覧");
 
 const MATCH_SCHEDULING_FORM_ID = '';
 const MATCH_RESULT_FORM_ID = '';
 
-const MAX_RANK_DIFFERENCE = 'B1';
-const MATCH_ACCEPT_DAY_LIMIT = 'B3';
-const SAME_OPPONENT_COOLDOWN_DAYS = 'B5';
-const MONTH_APPLICATION_LIMIT = 'B7';
+const MAX_RANK_DIFFERENCE_CELL = 'B1';
+const MATCH_ACCEPT_DAY_LIMIT_CELL = 'B3';
+const SAME_OPPONENT_COOLDOWN_DAYS_CELL = 'B5';
+const MONTH_APPLICATION_LIMIT_CELL = 'B7';
 
+const timeSlotSortOrder = { '部活時間外': 0, '部活中(1試合目)': 1, '部活中(2試合目)': 2, '部活中(3試合目)': 3, 'その他': 4 };
 
 // フォームを受け取った時の分岐
 // 日程報告か結果報告か
@@ -176,7 +178,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
     matchData.forEach((row,idx) => {
       if(row[0] === applicantID && row[2] === opponentID && (new Date(row[4])).getTime() === originalDate.getTime()){
         
-        if(timeSlot === '金曜の強化練@青葉体育館'){
+        if(timeSlot === '金曜部活内'){
           if(row[5] === '部活時間外' || row[5] === 'その他'){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
             return;
@@ -235,7 +237,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
       isMale = true;
     }
 
-    if(modifiedTimeSlot === '金曜の強化練@青葉体育館'){
+    if(modifiedTimeSlot === '金曜部活内'){
       if(!isFriday(modifiedDate)){
         console.log('強化練を選んだ場合、日付は金曜日でなくてはいけません。');
         return;
@@ -252,7 +254,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
     matchData.forEach((row,idx) => {
       if(row[0] === applicantID && row[2] === opponentID && (new Date(row[4])).getTime() === originalDate.getTime()){
         
-        if(timeSlot === '金曜の強化練@青葉体育館'){
+        if(timeSlot === '金曜部活内'){
           if(row[5] === '部活時間外' || row[5] === 'その他'){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
             return;
@@ -304,7 +306,7 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot){
     console.log(applicantID);
     console.log(opponentID);
 
-    if(timeSlot === '金曜の強化練@青葉体育館'){
+    if(timeSlot === '金曜部活内'){
       if(!isFriday(originalDate)){
         console.log('強化練を選んだ場合、日付は金曜日でなくてはいけません。');
         return;
@@ -336,7 +338,7 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot){
 // その日が試合で埋まっているかを判定する関数
 // 金曜日の強化練の時は判定するがそれ以外の場合は必ずfalseを返す
 function isSlotBooked(date,slot){
-  if(slot !== '金曜の強化練@青葉体育館')return false;
+  if(slot !== '金曜部活内')return false;
 
   const lastRow = rankMatchScheduleSheet.getLastRow();
   if(lastRow <= 1){
@@ -695,7 +697,7 @@ function sortRankMatchSchedule(){
   }
 
   const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,9).getValues();
-  matchData.sort((a, b) => new Date(a[4]).getTime() - new Date(b[4]).getTime());
+  matchData.sort((a, b) => new Date(a[4]).getTime() - new Date(b[4]).getTime() || timeSlotSortOrder[a[5]] - timeSlotSortOrder[b[5]]);
   rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,9).setValues(matchData);
 
   console.log('日程を時系列順にソートしました。');
@@ -745,9 +747,13 @@ function updateFormDropdown() {
 
 //月初めに挑戦権を回復させる関数(定期実行)
 function restoreChallengeRight(){
-  maleSheet.getRange('F2:F' + maleSheet.getLastRow()).setValue('2');
+  const now = new Date();
+  const month = now.getMonth(); 
+  const cell = MONTH_APPLICATION_LIMIT_CELL[0] + String(Number(MONTH_APPLICATION_LIMIT_CELL[1]) + month + 1);
+  const monthApplicationLimit = configSheet.getRange(cell).getValue();
+  maleSheet.getRange('F2:F' + maleSheet.getLastRow()).setValue(monthApplicationLimit);
   maleSheet.getRange('G2:G' + maleSheet.getLastRow()).setValue('可');
-  femaleSheet.getRange('F2:F' + femaleSheet.getLastRow()).setValue('2');
+  femaleSheet.getRange('F2:F' + femaleSheet.getLastRow()).setValue(monthApplicationLimit);
   femaleSheet.getRange('G2:G' + femaleSheet.getLastRow()).setValue('可');
   console.log('挑戦権を回復させました。');
 }
