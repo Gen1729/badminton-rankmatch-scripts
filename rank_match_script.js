@@ -4,8 +4,8 @@ const femaleSheet = ss.getSheetByName("女子");
 const rankMatchScheduleSheet = ss.getSheetByName("ランク戦日程");
 const configSheet = ss.getSheetByName("設定一覧");
 
-const MATCH_SCHEDULING_FORM_ID = 'FORM_ID_1';
-const MATCH_RESULT_FORM_ID = 'FORM_ID_2';
+const MATCH_SCHEDULING_FORM_ID = '';
+const MATCH_RESULT_FORM_ID = '';
 
 const MAX_RANK_DIFFERENCE_CELL = 'B1';
 const MATCH_ACCEPT_DAY_LIMIT_CELL = 'B3';
@@ -205,7 +205,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
           }
         }
 
-        rankMatchScheduleSheet.deleteRow(idx + 4);
+        rankMatchScheduleSheet.deleteRow(idx + 2);
         manageChallenge(applicantID,false,isMale);
         console.log('該当の試合を削除しました。');
         deleteFlag = true;
@@ -286,7 +286,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
           }
         }
 
-        rankMatchScheduleSheet.deleteRow(idx + 4);
+        rankMatchScheduleSheet.deleteRow(idx + 2);
         manageChallenge(applicantID,false,isMale);
         pushNewMatch(applicant,opponent,modifiedDate,modifiedTimeSlot,false);
         console.log('該当の試合の日程/時間帯を変更しました。');
