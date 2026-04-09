@@ -4,13 +4,17 @@ const femaleSheet = ss.getSheetByName("女子");
 const rankMatchScheduleSheet = ss.getSheetByName("ランク戦日程");
 const configSheet = ss.getSheetByName("設定一覧");
 
-const MATCH_SCHEDULING_FORM_ID = '';
-const MATCH_RESULT_FORM_ID = '';
+const MATCH_SCHEDULING_FORM_ID = 'FORM_ID_1';
+const MATCH_RESULT_FORM_ID = 'FORM_ID_2';
 
 const MAX_RANK_DIFFERENCE_CELL = 'B1';
 const MATCH_ACCEPT_DAY_LIMIT_CELL = 'B3';
 const SAME_OPPONENT_COOLDOWN_DAYS_CELL = 'B5';
 const MONTH_APPLICATION_LIMIT_CELL = 'B7';
+
+const MAX_RANK_DIFFERENCE = configSheet.getRange(MAX_RANK_DIFFERENCE_CELL);
+const MATCH_ACCEPT_DAY_LIMIT = configSheet.getRange(MATCH_ACCEPT_DAY_LIMIT_CELL);
+const SAME_OPPONENT_COOLDOWN_DAYS = configSheet.getRange(SAME_OPPONENT_COOLDOWN_DAYS_CELL);
 
 const timeSlotSortOrder = { '部活時間外': 0, '部活中(1試合目)': 1, '部活中(2試合目)': 2, '部活中(3試合目)': 3, 'その他': 4 };
 
@@ -55,7 +59,7 @@ function handleSchedule(e){
     today.setHours(0,0,0,0);
     const applicationScope = new Date();
     applicationScope.setHours(0,0,0,0);
-    applicationScope.setDate(applicationScope.getDate() + 7 + 1);
+    applicationScope.setDate(applicationScope.getDate() + MATCH_ACCEPT_DAY_LIMIT + 1);
 
     if(applicant === opponent){
       console.log('対戦する人が同一人物です。入力は無効です。');
@@ -73,12 +77,12 @@ function handleSchedule(e){
     }
 
     if(applicationScope < originalDate){
-      console.log('日付が未来すぎます。' + '7' + '日以内の日程のみ許可します。入力は無効です。');
+      console.log('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       return;
     }
 
     if(modifiedDate && applicationScope < modifiedDate){
-      console.log('日付が未来すぎます。' + '7' + '日以内の日程のみ許可します。入力は無効です。');
+      console.log('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       return;
     }
 
@@ -441,13 +445,13 @@ function canPlayMatch(applicantID,opponentID,isMale){
   }
 
   if(cannotPlayMatchPlayersCount <= 1){
-    if(applicantRowIndex - opponentRowIndex <= 3){
+    if(applicantRowIndex - opponentRowIndex <= MAX_RANK_DIFFERENCE){
       return true;
     }else{
       return false;
     }
   }else{
-    if(applicantRowIndex - opponentRowIndex <= 3 + cannotPlayMatchPlayersCount){
+    if(applicantRowIndex - opponentRowIndex <= MAX_RANK_DIFFERENCE + cannotPlayMatchPlayersCount){
       return true;
     }else{
       return false;
@@ -475,7 +479,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification){
   }
 
   if(isMatchedRecently(applicantID,opponentID,date)){
-    console.log('同じカードの対戦は前回の対戦から' + '21' + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。');
+    console.log('同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。');
     return;
   }
 
@@ -532,7 +536,7 @@ function isMatchedRecently(applicantID,opponentID,date){
 
   const scope = new Date();
   scope.setHours(0,0,0,0);
-  scope.setDate(date.getDate() - 21);
+  scope.setDate(date.getDate() - SAME_OPPONENT_COOLDOWN_DAYS);
 
   const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,9).getValues();
   let recentlyFlag = false;
