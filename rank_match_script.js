@@ -191,7 +191,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
       isMale = true;
     }
 
-    const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+    const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
     let deleteFlag = false;
     matchData.forEach((row,idx) => {
       if(row[0] === applicantID && row[2] === opponentID && (new Date(row[4])).getTime() === originalDate.getTime()){
@@ -275,7 +275,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
       return;
     }
 
-    const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+    const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
     let modifyFlag = false;
     matchData.forEach((row,idx) => {
       if(row[0] === applicantID && row[2] === opponentID && (new Date(row[4])).getTime() === originalDate.getTime()){
@@ -381,7 +381,7 @@ function isSlotBooked(date,slot){
     return false;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
   let sameDayCount = 0;
   matchData.forEach((row) => {
     if((new Date(row[4])).getTime() === date.getTime()){
@@ -405,7 +405,7 @@ function countFridayMatch(date){
     return 1;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
   let sameDayCount = 0;
   matchData.forEach((row) => {
     if((new Date(row[4])).getTime() === date.getTime()){
@@ -421,7 +421,7 @@ function countFridayMatch(date){
 // 金曜の１、２試合目が無くなったらその後にあった試合を詰める関数
 function narrowSchedule(date,matchNumber){
   const lastRow = rankMatchScheduleSheet.getLastRow();
-  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
   matchData.forEach((row,idx) => {
     if((new Date(row[4])).getTime() === date.getTime()){
       if(row[5] !== '部活時間外' && row[5] !== 'その他'){
@@ -531,7 +531,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification){
     slotString = '部活中(' + nextMatchNumber + '試合目)';
   }
 
-  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','',modificationFlag,new Date()]);
+  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','',modificationFlag,new Date(),'']);
   manageChallenge(applicantID,true,isMale);
 }
 
@@ -576,7 +576,7 @@ function isMatchedRecently(applicantID,opponentID,date){
   scope.setHours(0,0,0,0);
   scope.setDate(date.getDate() - SAME_OPPONENT_COOLDOWN_DAYS);
 
-  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
   let recentlyFlag = false;
   matchData.forEach((row) => {
     if(!((row[0] === applicantID && row[2] === opponentID) || (row[0] === opponentID && row[2] === applicantID)))return;
@@ -618,12 +618,14 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
     isMale = true;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
 
   const today = new Date();
   today.setHours(0,0,0,0);
 
   let isExecuted = false;
+
+  let applytime;
 
   matchData.forEach((row,idx) => {
     if(isExecuted)return;
@@ -635,6 +637,10 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
       }
 
       rankMatchScheduleSheet.getRange(1 + 1 + idx,6 + 1,1,2).setValues([['済',matchResult]]);
+      rankMatchScheduleSheet.getRange(1 + 1 + idx,10 + 1).setValue(new Date());
+
+      applytime = new Date(row[9]);
+
       isExecuted = true;
     }
   })
@@ -654,11 +660,11 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
 
   console.log('順位表の変動を開始します。');
 
-  changeRanking(applicantID,opponentID,isMale);
+  changeRanking(applicantID,opponentID,isMale,applytime);
 }
 
 // ランキングを変更する関数
-function changeRanking(applicantID,opponentID,isMale){
+function changeRanking(applicantID,opponentID,isMale,applytime){
 
   let lastRow,rankData;
   
@@ -698,6 +704,11 @@ function changeRanking(applicantID,opponentID,isMale){
     }
   }
 
+  const isPromoted = isOpponentPromoted(applytime,opponentID);
+  if(isPromoted){
+    opponentRowIndex = applicantRowIndex - min(applicantRowIndex - opponentRowIndex,MAX_RANK_DIFFERENCE);
+  }
+
   if(isMale){
     const subRanking = rankData.slice(opponentRowIndex,applicantRowIndex + 1);
     const removedRankSubRanking = subRanking.map((row) => row.slice(1));
@@ -735,6 +746,26 @@ function removeWinningBonus(applicantID,isMale){
   return;
 }
 
+// 試合申し込みから対戦相手が勝ち上がったかどうかを判定する関数
+function isOpponentPromoted(time,opponentID){
+  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
+  let isPromoted = false;
+  matchData.forEach((row) => {
+    if(row[0] !== opponentID)return;
+    if(row[6] === '')return;
+    if(row[7] === '敗北')return;
+    if(new Date(row[10]).getTime() < time.getTime())return;
+
+    isPromoted = true;
+  })
+
+  return isPromoted;
+}
+
+// 以上結果報告の関数
+// -----------------------------------------
+// 以下その他の関数
+
 //時系列順にソートする関数
 function sortRankMatchSchedule(){
   const lastRow = rankMatchScheduleSheet.getLastRow();
@@ -742,9 +773,9 @@ function sortRankMatchSchedule(){
     return;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
   matchData.sort((a, b) => new Date(a[4]).getTime() - new Date(b[4]).getTime() || timeSlotSortOrder[a[5]] - timeSlotSortOrder[b[5]]);
-  rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,10).setValues(matchData);
+  rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).setValues(matchData);
 
   console.log('日程を時系列順にソートしました。');
 }
