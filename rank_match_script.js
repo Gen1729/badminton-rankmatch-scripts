@@ -515,8 +515,8 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification){
   }
 
   if(isMatchedRecently(applicantID,opponentID,date)){
-    console.log('同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。');
-    writeLogsInFormResponse('同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。',true);
+    console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。');
+    writeLogsInFormResponse('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。',true);
     return;
   }
 
@@ -577,14 +577,24 @@ function isMatchedRecently(applicantID,opponentID,date){
   scope.setDate(date.getDate() - SAME_OPPONENT_COOLDOWN_DAYS);
 
   const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
-  let recentlyFlag = false;
+  let recentlyCounterMatchedFlag = false;
   matchData.forEach((row) => {
-    if(!((row[0] === applicantID && row[2] === opponentID) || (row[0] === opponentID && row[2] === applicantID)))return;
-    if(new Date(row[4]) > scope){
-      recentlyFlag = true;
+    if(!(row[0] === opponentID && row[2] === applicantID))return;
+    if(new Date(row[4]) > scope && row[7] !== '敗北'){
+      recentlyCounterMatchedFlag = true;
     }
   })
-  if(recentlyFlag)return true;
+  if(recentlyCounterMatchedFlag)return true;
+
+  let recentlyReMatchedFlag = false;
+  matchData.forEach((row) => {
+    if(!(row[0] === applicantID && row[2] === opponentID))return;
+    if(new Date(row[4]) > scope && row[7] === '敗北'){
+      recentlyReMatchedFlag = true;
+    }
+  })
+
+  if(recentlyReMatchedFlag)return true;
   else return false;
 }
 
