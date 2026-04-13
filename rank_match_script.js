@@ -62,7 +62,7 @@ function handleSchedule(e){
     today.setHours(0,0,0,0);
     const applicationScope = new Date();
     applicationScope.setHours(0,0,0,0);
-    applicationScope.setDate(applicationScope.getDate() + MATCH_ACCEPT_DAY_LIMIT + 1);
+    applicationScope.setDate(applicationScope.getDate() + MATCH_ACCEPT_DAY_LIMIT);
 
     if(applicant === opponent){
       console.log('対戦する人が同一人物です。入力は無効です。');
@@ -580,7 +580,7 @@ function isMatchedRecently(applicantID,opponentID,date){
   let recentlyCounterMatchedFlag = false;
   matchData.forEach((row) => {
     if(!(row[0] === opponentID && row[2] === applicantID))return;
-    if(new Date(row[4]) > scope && row[7] !== '敗北'){
+    if(new Date(row[4]) > scope && row[6] !== '' && row[7] !== '敗北'){
       recentlyCounterMatchedFlag = true;
     }
   })
@@ -599,6 +599,7 @@ function isMatchedRecently(applicantID,opponentID,date){
 }
 
 // 金曜日かどうか判定する関数
+// 金曜日じゃなくなる場合は数字を変更してください。(日=0,月=1,火=2,水=3,...,土=6)
 function isFriday(date){
   return date.getDay() === 5;
 }
