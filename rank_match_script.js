@@ -21,7 +21,7 @@ const MATCH_ACCEPT_DAY_LIMIT = configSheet.getRange(MATCH_ACCEPT_DAY_LIMIT_CELL)
 const SAME_OPPONENT_COOLDOWN_DAYS = configSheet.getRange(SAME_OPPONENT_COOLDOWN_DAYS_CELL).getValue();
 const FRIDAY_MATCH_NUMBER = configSheet.getRange(FRIDAY_MATCH_NUMBER_CELL).getValue();
 
-const timeSlotSortOrder = { '部活時間外': 0, '部活中(1試合目)': 1, '部活中(2試合目)': 2, '部活中(3試合目)': 3, 'その他': 4 };
+const timeSlotSortOrder = { '部活時間外': 0, '部活中': 1, 'その他': 2 };
 
 const HEADER_ROW_OFFSET = 1;
 
@@ -799,7 +799,25 @@ function sortRankMatchSchedule(){
   }
 
   const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
-  matchData.sort((a, b) => new Date(a[4]).getTime() - new Date(b[4]).getTime() || timeSlotSortOrder[a[5]] - timeSlotSortOrder[b[5]]);
+  matchData.sort((a, b) => {
+    if(new Date(a[4]).getTime() - new Date(b[4]).getTime() !== 0){
+      return new Date(a[4]).getTime() - new Date(b[4]).getTime();
+    }
+
+    let a_order,b_order;
+    if(a[5] in timeSlotSortOrder === false){
+      a_order = 1;
+    }else{
+      a_order = timeSlotSortOrder[a[5]];
+    }
+    if(b[5] in timeSlotSortOrder === false){
+      b_order = 1;
+    }else{
+      b_order = timeSlotSortOrder[b[5]];
+    }
+
+    return a_order - b_order || a[5] - b[5];
+  });
   rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).setValues(matchData);
 
   console.log('日程を時系列順にソートしました。');
