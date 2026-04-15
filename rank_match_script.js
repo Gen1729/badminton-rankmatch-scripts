@@ -490,12 +490,16 @@ function canPlayMatch(applicantID,opponentID,isMale){
     if(applicantRowIndex - opponentRowIndex <= MAX_RANK_DIFFERENCE){
       return true;
     }else{
+      console.log('順位差が大きすぎです。');
+      writeLogsInFormResponse('順位差が大きすぎです。',true);
       return false;
     }
   }else{
     if(applicantRowIndex - opponentRowIndex <= MAX_RANK_DIFFERENCE + cannotPlayMatchPlayersCount){
       return true;
     }else{
+      console.log('順位差が大きすぎです。');
+      writeLogsInFormResponse('順位差が大きすぎです。',true);
       return false;
     }
   }
