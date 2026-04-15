@@ -3,6 +3,8 @@ const maleSheet = ss.getSheetByName("男子");
 const femaleSheet = ss.getSheetByName("女子");
 const rankMatchScheduleSheet = ss.getSheetByName("ランク戦日程");
 const configSheet = ss.getSheetByName("設定一覧");
+const maleSheetByDepartment = ss.getSheetByName("男子（学科別）");
+const femaleSheetByDepartment = ss.getSheetByName("女子（学科別）");
 
 const scheduleFormResponsesSheet = ss.getSheetByName("日程報告");
 const resultFormResponsesSheet = ss.getSheetByName("結果報告");
@@ -767,6 +769,8 @@ function changeRanking(applicantID,opponentID,isMale,applytime){
   }
 
   console.log('ランキングを正常に変更しました。');
+
+  buildRankingsByDepartment();
 }
 
 // 連勝ボーナスを剥奪する関数
@@ -916,4 +920,48 @@ function writeLogsInFormResponse(message,isScheduleForm){
     const previousMessage = resultFormResponsesSheet.getRange(lastRow,8).getValue();
     resultFormResponsesSheet.getRange(lastRow,8).setValue(previousMessage + message);
   }
+}
+
+// 学科別順位表を構築する関数
+function buildRankingsByDepartment(){
+  const maleLastRow = maleSheet.getLastRow();
+  const maleData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,maleLastRow-1,4).getValues();
+  const femaleLastRow = femaleSheet.getLastRow();
+  const femaleData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,femaleLastRow-1,4).getValues();
+
+  let maleMedicineData = [];
+  let maleInsuranceData = [];
+
+  for(let i = 0;i < maleLastRow-1;i++){
+    let maleRow = maleData[i];
+    if(maleData[i][PLAYER_ID_COLUMN][4] === '1'){
+      maleRow[0] = String(maleMedicineData.length + 1) + ' (' + maleRow[0] + ')';
+      maleMedicineData.push(maleRow);
+    }else{
+      maleRow[0] = String(maleInsuranceData.length + 1) + ' (' + maleRow[0] + ')';
+      maleInsuranceData.push(maleRow);
+    }
+  }
+
+  let femaleMedicineData = [];
+  let femaleInsuranceData = [];
+
+  for(let i = 0;i < femaleLastRow-1;i++){
+    let femaleRow = femaleData[i];
+    if(femaleData[i][PLAYER_ID_COLUMN][4] === '1'){
+      femaleRow[0] = String(femaleMedicineData.length + 1) + ' (' + femaleRow[0] + ')';
+      femaleMedicineData.push(femaleRow);
+    }else{
+      femaleRow[0] = String(femaleInsuranceData.length + 1) + ' (' + femaleRow[0] + ')';
+      femaleInsuranceData.push(femaleRow);
+    }
+  }
+
+  maleSheetByDepartment.getRange(2,1,maleSheetByDepartment.getLastRow(),maleSheetByDepartment.getLastColumn()).clearContent();
+  femaleSheetByDepartment.getRange(2,1,femaleSheetByDepartment.getLastRow(),femaleSheetByDepartment.getLastColumn()).clearContent();
+  
+  maleSheetByDepartment  .getRange(HEADER_ROW_OFFSET + 1,2,maleMedicineData   .length,4).setValues(maleMedicineData   );
+  maleSheetByDepartment  .getRange(HEADER_ROW_OFFSET + 1,8,maleInsuranceData  .length,4).setValues(maleInsuranceData  );
+  femaleSheetByDepartment.getRange(HEADER_ROW_OFFSET + 1,2,femaleMedicineData .length,4).setValues(femaleMedicineData );
+  femaleSheetByDepartment.getRange(HEADER_ROW_OFFSET + 1,8,femaleInsuranceData.length,4).setValues(femaleInsuranceData);
 }
