@@ -14,10 +14,12 @@ const MAX_RANK_DIFFERENCE_CELL = 'B1';
 const MATCH_ACCEPT_DAY_LIMIT_CELL = 'B3';
 const SAME_OPPONENT_COOLDOWN_DAYS_CELL = 'B5';
 const MONTH_APPLICATION_LIMIT_CELL = 'B7';
+const FRIDAY_MATCH_NUMBER_CELL = 'B21';
 
 const MAX_RANK_DIFFERENCE = configSheet.getRange(MAX_RANK_DIFFERENCE_CELL).getValue();
 const MATCH_ACCEPT_DAY_LIMIT = configSheet.getRange(MATCH_ACCEPT_DAY_LIMIT_CELL).getValue();
 const SAME_OPPONENT_COOLDOWN_DAYS = configSheet.getRange(SAME_OPPONENT_COOLDOWN_DAYS_CELL).getValue();
+const FRIDAY_MATCH_NUMBER = configSheet.getRange(FRIDAY_MATCH_NUMBER_CELL).getValue();
 
 const timeSlotSortOrder = { '部活時間外': 0, '部活中(1試合目)': 1, '部活中(2試合目)': 2, '部活中(3試合目)': 3, 'その他': 4 };
 
@@ -215,7 +217,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
         }
 
         if(row[5] !== '部活時間外' && row[5] !== 'その他'){
-          if(Number(row[5][4]) !== 3){
+          if(Number(row[5][4]) !== FRIDAY_MATCH_NUMBER){
             narrowSchedule(originalDate,Number(row[5][4]));
           }
         }
@@ -311,7 +313,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
         }
 
         if(row[5] !== '部活時間外' && row[5] !== 'その他'){
-          if(Number(row[5][4]) !== 3){
+          if(Number(row[5][4]) !== FRIDAY_MATCH_NUMBER){
             narrowSchedule(originalDate,Number(row[5][4]));
           }
         }
@@ -397,7 +399,7 @@ function isSlotBooked(date,slot){
     }
   })
 
-  if(sameDayCount >= 3){
+  if(sameDayCount >= FRIDAY_MATCH_NUMBER){
     return true;
   }
 
