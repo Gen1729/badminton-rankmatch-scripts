@@ -275,6 +275,12 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
       return;
     }
 
+    if(isMatchedRecently(applicantID,opponentID,modifiedDate)){
+      console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
+      writeLogsInFormResponse('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。',true);
+      return;
+    }
+
     const matchData = rankMatchScheduleSheet.getRange(1 + 1,1,lastRow-1,11).getValues();
     let modifyFlag = false;
     matchData.forEach((row,idx) => {
@@ -515,8 +521,8 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification){
   }
 
   if(isMatchedRecently(applicantID,opponentID,date)){
-    console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。');
-    writeLogsInFormResponse('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。日程/時間帯変更の場合はキャンセルと同じ扱いになります。',true);
+    console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
+    writeLogsInFormResponse('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。',true);
     return;
   }
 
