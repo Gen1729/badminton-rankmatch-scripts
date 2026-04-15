@@ -11,6 +11,7 @@ const resultFormResponsesSheet = ss.getSheetByName("結果報告");
 
 const MATCH_SCHEDULING_FORM_ID = '';
 const MATCH_RESULT_FORM_ID = '';
+const MATCH_RESULT_CHECK_FORM_ID = '';
 
 const MAX_RANK_DIFFERENCE_CELL = 'B1';
 const MATCH_ACCEPT_DAY_LIMIT_CELL = 'B3';
@@ -856,26 +857,28 @@ function sortRankMatchSchedule(){
 function updateFormDropdown() {
   const choices = [];
 
-  const maleData = maleSheet.getRange('B2:C' + maleSheet.getLastRow()).getValues(); // イベント情報を取得
+  const maleData = maleSheet.getRange('A2:C' + maleSheet.getLastRow()).getValues(); // イベント情報を取得
   for (let i = 0; i < maleData.length; i++) {
     const studentID = maleData[i][PLAYER_ID_COLUMN];
     const studentName = maleData[i][PLAYER_NAME_COLUMN];
     choices.push('(男) ' + studentName + ' (' + studentID + ')');
   }
 
-  const femaleData = femaleSheet.getRange('B2:C' + femaleSheet.getLastRow()).getValues(); // イベント情報を取得
+  const femaleData = femaleSheet.getRange('A2:C' + femaleSheet.getLastRow()).getValues(); // イベント情報を取得
   for (let i = 0; i < femaleData.length; i++) {
     const studentID = femaleData[i][PLAYER_ID_COLUMN];
     const studentName = femaleData[i][PLAYER_NAME_COLUMN];
     choices.push('(女) ' + studentName + ' (' + studentID + ')');
   }
-
   
   const matchSchedulingForm = FormApp.openById(MATCH_SCHEDULING_FORM_ID);
   const matchResultForm = FormApp.openById(MATCH_RESULT_FORM_ID);
+  const matchResultCheckForm = FormApp.openById(MATCH_RESULT_CHECK_FORM_ID);
 
   const matchSchedulingItems = matchSchedulingForm.getItems();
   const matchResultItems = matchResultForm.getItems();
+  const matchResultCheckItems = matchResultCheckForm.getItems();
+
   for (let j = 0; j < matchSchedulingItems.length; j++) {
     var item = matchSchedulingItems[j];
     if(item.getTitle() === 'ランク戦を申し込む人' || item.getTitle() === 'ランク戦を受ける人'){
@@ -886,6 +889,13 @@ function updateFormDropdown() {
   for (let j = 0; j < matchResultItems.length; j++) {
     var item = matchResultItems[j];
     if(item.getTitle() === 'ランク戦を申し込んだ人' || item.getTitle() === 'ランク戦を受けた人'){
+      const itemQuestion = item.asListItem();
+      itemQuestion.setChoiceValues(choices);
+    }
+  }
+  for (let j = 0; j < matchResultCheckItems.length; j++) {
+    var item = matchResultCheckItems[j];
+    if(item.getTitle() === '誰に関する結果を確認するか' || item.getTitle() === '（任意）対戦相手'){
       const itemQuestion = item.asListItem();
       itemQuestion.setChoiceValues(choices);
     }
