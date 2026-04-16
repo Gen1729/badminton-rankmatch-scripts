@@ -37,9 +37,12 @@ const MATCH_DATE_COLUMN = 4;
 const MATCH_TIMESLOT_COLUMN = 5;
 const MATCH_RESULT_FLAG_COLUMN = 6;
 const MATCH_RESULT_COLUMN = 7;
-const MODIFY_FLAG_COLUMN = 8;
-const SCHEDULE_FORM_TIMESTAMP_COLUMN = 9;
-const RESULT_FORM_TIMESTAMP_COLUMN = 10;
+const MODIFY_FLAG_COLUMN = 11;
+const SCHEDULE_FORM_TIMESTAMP_COLUMN = 12;
+const RESULT_FORM_TIMESTAMP_COLUMN = 13;
+
+// ランク戦日程シートの列数
+const RANK_MATCH_SHEET_MAX_COLUMN = 14;
 
 // ランキングシートの列の定数
 const PLAYER_ID_COLUMN = 1;
@@ -47,6 +50,9 @@ const PLAYER_NAME_COLUMN = 2;
 const CAN_PLAY_FLAG_COLUMN = 4;
 const MATCH_LIMIT_COLUMN = 5;
 const MATCH_MORE_FLAG_COLUMN = 6;
+
+// ランキング表シートの列数
+const RANKING_SHEET_MAX_COLUMN = 7;
 
 // フォームを受け取った時の分岐
 // 日程報告か結果報告か
@@ -218,7 +224,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
       isMale = true;
     }
 
-    const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+    const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
     let deleteFlag = false;
     matchData.forEach((row,idx) => {
       if(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID && (new Date(row[MATCH_DATE_COLUMN])).getTime() === originalDate.getTime()){
@@ -308,7 +314,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
       return;
     }
 
-    const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+    const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
     let modifyFlag = false;
     matchData.forEach((row,idx) => {
       if(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID && (new Date(row[MATCH_DATE_COLUMN])).getTime() === originalDate.getTime()){
@@ -414,7 +420,7 @@ function isSlotBooked(date,slot){
     return false;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   let sameDayCount = 0;
   matchData.forEach((row) => {
     if((new Date(row[MATCH_DATE_COLUMN])).getTime() === date.getTime()){
@@ -438,7 +444,7 @@ function countFridayMatch(date){
     return 1;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   let sameDayCount = 0;
   matchData.forEach((row) => {
     if((new Date(row[MATCH_DATE_COLUMN])).getTime() === date.getTime()){
@@ -454,7 +460,7 @@ function countFridayMatch(date){
 // 金曜の１、２試合目が無くなったらその後にあった試合を詰める関数
 function narrowSchedule(date,matchNumber){
   const lastRow = rankMatchScheduleSheet.getLastRow();
-  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   matchData.forEach((row,idx) => {
     if((new Date(row[MATCH_DATE_COLUMN])).getTime() === date.getTime()){
       if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
@@ -473,11 +479,11 @@ function canPlayMatch(applicantID,opponentID,isMale){
   
   if(isMale){
     lastRow = maleSheet.getLastRow();
-    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
 
   }else{
     lastRow = femaleSheet.getLastRow();
-    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
   }
 
   const applicantRowIndex = rankData.findIndex((row) => row[PLAYER_ID_COLUMN] === applicantID);
@@ -568,7 +574,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification){
     slotString = '部活中(' + nextMatchNumber + '試合目)';
   }
 
-  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','',modificationFlag,new Date(),'']);
+  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','','','','',modificationFlag,new Date(),'']);
   manageChallenge(applicantID,true,isMale);
 }
 
@@ -579,11 +585,11 @@ function manageChallenge(id,isUsed,isMale){
   
   if(isMale){
     lastRow = maleSheet.getLastRow();
-    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
 
   }else{
     lastRow = femaleSheet.getLastRow();
-    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
   }
 
   const rowIndex = rankData.findIndex((row) => row[PLAYER_ID_COLUMN] === id);
@@ -613,7 +619,7 @@ function isMatchedRecently(applicantID,opponentID,date){
   scope.setHours(0,0,0,0);
   scope.setDate(date.getDate() - SAME_OPPONENT_COOLDOWN_DAYS);
 
-  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   let recentlyCounterMatchedFlag = false;
   matchData.forEach((row) => {
     if(!(row[APPLICANT_ID_COLUMN] === opponentID && row[OPPONENT_ID_COLUMN] === applicantID))return;
@@ -666,7 +672,7 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
     isMale = true;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
 
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -684,7 +690,7 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
         return;
       }
 
-      rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_RESULT_FLAG_COLUMN + 1,1,2).setValues([['済',matchResult]]);
+      rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_RESULT_FLAG_COLUMN + 1,1,5).setValues([['済',matchResult,game1Score,game2Score,game3Score]]);
       rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,RESULT_FORM_TIMESTAMP_COLUMN + 1).setValue(new Date());
 
       applytime = new Date(row[SCHEDULE_FORM_TIMESTAMP_COLUMN]);
@@ -718,11 +724,11 @@ function changeRanking(applicantID,opponentID,isMale,applytime){
   
   if(isMale){
     lastRow = maleSheet.getLastRow();
-    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
 
   }else{
     lastRow = femaleSheet.getLastRow();
-    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
   }
 
   const applicantRowIndex = rankData.findIndex((row) => row[PLAYER_ID_COLUMN] === applicantID);
@@ -780,10 +786,10 @@ function removeWinningBonus(applicantID,isMale){
   
   if(isMale){
     lastRow = maleSheet.getLastRow();
-    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
   }else{
     lastRow = femaleSheet.getLastRow();
-    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,7).getValues();
+    rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
   }
 
   const applicantRowIndex = rankData.findIndex((row) => row[PLAYER_ID_COLUMN] === applicantID);
@@ -798,7 +804,7 @@ function removeWinningBonus(applicantID,isMale){
 
 // 試合申し込みから対戦相手が勝ち上がったかどうかを判定する関数
 function isOpponentPromoted(time,opponentID){
-  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   let isPromoted = false;
   matchData.forEach((row) => {
     if(row[APPLICANT_ID_COLUMN] !== opponentID)return;
@@ -823,7 +829,7 @@ function sortRankMatchSchedule(){
     return;
   }
 
-  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).getValues();
+  const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   matchData.sort((a, b) => {
     if(new Date(a[MATCH_DATE_COLUMN]).getTime() - new Date(b[MATCH_DATE_COLUMN]).getTime() !== 0){
       return new Date(a[MATCH_DATE_COLUMN]).getTime() - new Date(b[MATCH_DATE_COLUMN]).getTime();
@@ -848,7 +854,7 @@ function sortRankMatchSchedule(){
       return na - nb;
     }
   });
-  rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,11).setValues(matchData);
+  rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).setValues(matchData);
 
   console.log('日程を時系列順にソートしました。');
 }
