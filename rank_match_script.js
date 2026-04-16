@@ -351,7 +351,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
 
         rankMatchScheduleSheet.deleteRow(idx + HEADER_ROW_OFFSET + 1);
         manageChallenge(applicantID,false,isMale);
-        pushNewMatch(applicant,opponent,modifiedDate,modifiedTimeSlot,false);
+        pushNewMatch(applicant,opponent,modifiedDate,modifiedTimeSlot,false,new Date(row[SCHEDULE_FORM_TIMESTAMP_COLUMN]));
         console.log('該当の試合の日程/時間帯を変更しました。');
         modifyFlag = true;
       }
@@ -403,7 +403,7 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot){
       return;
     }
 
-    pushNewMatch(applicant,opponent,originalDate,timeSlot,true);
+    pushNewMatch(applicant,opponent,originalDate,timeSlot,true,null);
   } catch (err) {
     console.log('日程追加処理中にエラーが発生しました。' + err);
     writeLogsInFormResponse('日程追加処理中にエラーが発生しました。' + err,true);
@@ -539,7 +539,7 @@ function canPlayMatch(applicantID,opponentID,isMale){
 }
 
 // 新規日程を追加する関数
-function pushNewMatch(applicant,opponent,date,slot,canUseModification){
+function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmittedDate){
   const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
   const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
   const applicantName = applicant.substring(3,applicant.length-11);
@@ -565,6 +565,8 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification){
 
   const modificationFlag = canUseModification ? '可' : '不可';
 
+  const submitTime = formSubmittedDate ? formSubmittedDate : new Date();
+
   let slotString;
 
   if(slot === '部活時間外' || slot === 'その他'){
@@ -574,7 +576,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification){
     slotString = '部活中(' + nextMatchNumber + '試合目)';
   }
 
-  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','','','','',modificationFlag,new Date(),'']);
+  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','','','','',modificationFlag,submitTime,'']);
   manageChallenge(applicantID,true,isMale);
 }
 
@@ -725,14 +727,13 @@ function changeRanking(applicantID,opponentID,isMale,applytime){
   if(isMale){
     lastRow = maleSheet.getLastRow();
     rankData = maleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
-
   }else{
     lastRow = femaleSheet.getLastRow();
     rankData = femaleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANKING_SHEET_MAX_COLUMN).getValues();
   }
 
   const applicantRowIndex = rankData.findIndex((row) => row[PLAYER_ID_COLUMN] === applicantID);
-  const opponentRowIndex  = rankData.findIndex((row) => row[PLAYER_ID_COLUMN] === opponentID );
+  let opponentRowIndex  = rankData.findIndex((row) => row[PLAYER_ID_COLUMN] === opponentID );
 
   if (applicantRowIndex === -1 || opponentRowIndex === -1) {
     console.log('プレイヤーが順位表から見つかりませんでした。');
@@ -760,7 +761,7 @@ function changeRanking(applicantID,opponentID,isMale,applytime){
 
   const isPromoted = isOpponentPromoted(applytime,opponentID);
   if(isPromoted){
-    opponentRowIndex = applicantRowIndex - min(applicantRowIndex - opponentRowIndex,MAX_RANK_DIFFERENCE);
+    opponentRowIndex = applicantRowIndex - Math.min(applicantRowIndex - opponentRowIndex,MAX_RANK_DIFFERENCE);
   }
 
   if(isMale){
@@ -804,6 +805,7 @@ function removeWinningBonus(applicantID,isMale){
 
 // 試合申し込みから対戦相手が勝ち上がったかどうかを判定する関数
 function isOpponentPromoted(time,opponentID){
+  const lastRow = rankMatchScheduleSheet.getLastRow();
   const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   let isPromoted = false;
   matchData.forEach((row) => {
