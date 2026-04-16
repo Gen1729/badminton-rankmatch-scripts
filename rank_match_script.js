@@ -465,7 +465,7 @@ function narrowSchedule(date,matchNumber){
     if((new Date(row[MATCH_DATE_COLUMN])).getTime() === date.getTime()){
       if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
         if(Number(row[MATCH_TIMESLOT_COLUMN][4]) > matchNumber){
-          rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,6).setValue('部活中(' + (Number(row[MATCH_TIMESLOT_COLUMN][4]) - 1) + '試合目)');
+          rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_TIMESLOT_COLUMN + 1).setValue('部活中(' + (Number(row[MATCH_TIMESLOT_COLUMN][4]) - 1) + '試合目)');
         }
       }
     }
@@ -766,13 +766,13 @@ function changeRanking(applicantID,opponentID,isMale,applytime){
   if(isMale){
     const subRanking = rankData.slice(opponentRowIndex,applicantRowIndex + 1);
     const removedRankSubRanking = subRanking.map((row) => row.slice(1));
-    maleSheet.getRange(HEADER_ROW_OFFSET + 1 + 1 + opponentRowIndex,2,applicantRowIndex - opponentRowIndex,6).setValues(removedRankSubRanking.slice(0,-1));
-    maleSheet.getRange(HEADER_ROW_OFFSET + 1 + opponentRowIndex,2,1,6).setValues(removedRankSubRanking.slice(-1));
+    maleSheet.getRange(HEADER_ROW_OFFSET + 1 + 1 + opponentRowIndex,2,applicantRowIndex - opponentRowIndex,RANKING_SHEET_MAX_COLUMN-1).setValues(removedRankSubRanking.slice(0,-1));
+    maleSheet.getRange(HEADER_ROW_OFFSET + 1 + opponentRowIndex,2,1,RANKING_SHEET_MAX_COLUMN-1).setValues(removedRankSubRanking.slice(-1));
   }else{
     const subRanking = rankData.slice(opponentRowIndex,applicantRowIndex + 1);
     const removedRankSubRanking = subRanking.map((row) => row.slice(1));
-    femaleSheet.getRange(HEADER_ROW_OFFSET + 1 + 1 + opponentRowIndex,2,applicantRowIndex - opponentRowIndex,6).setValues(removedRankSubRanking.slice(0,-1));
-    femaleSheet.getRange(HEADER_ROW_OFFSET + 1 + opponentRowIndex,2,1,6).setValues(removedRankSubRanking.slice(-1));
+    femaleSheet.getRange(HEADER_ROW_OFFSET + 1 + 1 + opponentRowIndex,2,applicantRowIndex - opponentRowIndex,RANKING_SHEET_MAX_COLUMN-1).setValues(removedRankSubRanking.slice(0,-1));
+    femaleSheet.getRange(HEADER_ROW_OFFSET + 1 + opponentRowIndex,2,1,RANKING_SHEET_MAX_COLUMN-1).setValues(removedRankSubRanking.slice(-1));
   }
 
   console.log('ランキングを正常に変更しました。');
