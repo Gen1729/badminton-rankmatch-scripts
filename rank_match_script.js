@@ -423,11 +423,9 @@ function isSlotBooked(date,slot){
   const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   let sameDayCount = 0;
   matchData.forEach((row) => {
-    if((new Date(row[MATCH_DATE_COLUMN])).getTime() === date.getTime()){
-      if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
-        sameDayCount += 1;
-      }
-    }
+    if((new Date(row[MATCH_DATE_COLUMN])).getTime() !== date.getTime())return;
+    if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他')return;
+    sameDayCount += 1;
   })
 
   if(sameDayCount >= FRIDAY_MATCH_NUMBER){
@@ -447,11 +445,9 @@ function countFridayMatch(date){
   const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   let sameDayCount = 0;
   matchData.forEach((row) => {
-    if((new Date(row[MATCH_DATE_COLUMN])).getTime() === date.getTime()){
-      if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
-        sameDayCount += 1;
-      }
-    }
+    if((new Date(row[MATCH_DATE_COLUMN])).getTime() !== date.getTime())return;
+    if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他')return;
+    sameDayCount += 1;
   })
 
   return sameDayCount + 1;
@@ -462,13 +458,12 @@ function narrowSchedule(date,matchNumber){
   const lastRow = rankMatchScheduleSheet.getLastRow();
   const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
   matchData.forEach((row,idx) => {
-    if((new Date(row[MATCH_DATE_COLUMN])).getTime() === date.getTime()){
-      if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
-        if(Number(row[MATCH_TIMESLOT_COLUMN][4]) > matchNumber){
-          rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_TIMESLOT_COLUMN + 1).setValue('部活中(' + (Number(row[MATCH_TIMESLOT_COLUMN][4]) - 1) + '試合目)');
-        }
-      }
+    if((new Date(row[MATCH_DATE_COLUMN])).getTime() !== date.getTime())return;
+    if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他')return;
+    if(Number(row[MATCH_TIMESLOT_COLUMN][4]) > matchNumber){
+      rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_TIMESLOT_COLUMN + 1).setValue('部活中(' + (Number(row[MATCH_TIMESLOT_COLUMN][4]) - 1) + '試合目)');
     }
+    
   })
 }
 
