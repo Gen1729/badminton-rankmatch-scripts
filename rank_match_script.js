@@ -59,26 +59,33 @@ const RANKING_SHEET_MAX_COLUMN = 7;
 function onFormSubmit(e) {
   const lock = LockService.getScriptLock();
 
-  if (!lock.tryLock(10000)) {
-    console.log('他の処理が終わっていないためスキップします。');
-    return;
-  }
-  try {
-    const sheet = e.source.getActiveSheet();
-    const sheetName = sheet.getName();
+  lock.waitLock(30000);
 
-    if(sheetName === '日程報告'){
-      handleSchedule(e);
-    }else if(sheetName === '結果報告'){
-      handleResult(e);
+  const responseSheet = e.range.getSheet();
+  const responseRow = e.range.getRow();
+  const sheetName = responseSheet.getName();
+
+  try {
+    if (sheetName === '日程報告') {
+      handleSchedule(e, responseSheet, responseRow);
+      return;
     }
+    if (sheetName === '結果報告') {
+      handleResult(e, responseSheet, responseRow);
+      return;
+    }
+    throw new Error(`想定外の送信先シートです: ${sheetName}`);
+  } catch (err) {
+    writeLogsInFormResponse(responseSheet, responseRow, err);
+    console.error(err);
+    throw err;
   } finally {
     lock.releaseLock();
   }
 }
 
 // 日程報告を受け取った時の関数
-function handleSchedule(e){
+function handleSchedule(e, responseSheet, responseRow){
   try {
     const formData = e.values;
     console.log("新規日程報告受信: " + JSON.stringify(formData));
@@ -99,37 +106,37 @@ function handleSchedule(e){
 
     if(applicant === opponent){
       console.log('対戦する人が同一人物です。入力は無効です。');
-      writeLogsInFormResponse('対戦する人が同一人物です。入力は無効です。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '対戦する人が同一人物です。入力は無効です。');
       return;
     }
 
     if(applicant[1] !== opponent[1]){
       console.log('対戦する人の性別が違います。入力は無効です。');
-      writeLogsInFormResponse('対戦する人の性別が違います。入力は無効です。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '対戦する人の性別が違います。入力は無効です。');
       return;
     }
 
     if(originalDate < today){
       console.log('日付が過去のものです。入力は無効です。');
-      writeLogsInFormResponse('日付が過去のものです。入力は無効です。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '日付が過去のものです。入力は無効です。');
       return;
     }
 
     if(applicationScope < originalDate){
       console.log('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
-      writeLogsInFormResponse('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       return;
     }
 
     if(modifiedDate && applicationScope < modifiedDate){
       console.log('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
-      writeLogsInFormResponse('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       return;
     }
 
     if(cancelFlag === 'キャンセル'){
       console.log('キャンセル操作を実行します。');
-      processCancelRequest(applicant,opponent,originalDate,timeSlot);
+      processCancelRequest(applicant,opponent,originalDate,timeSlot,responseSheet,responseRow);
       SpreadsheetApp.flush();
       return;
     }
@@ -140,7 +147,7 @@ function handleSchedule(e){
         return;
       }
       console.log('日付/時間帯変更操作を実行します。');
-      processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedDate,modifiedTimeSlot);
+      processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedDate,modifiedTimeSlot,responseSheet,responseRow);
       sortRankMatchSchedule();
       SpreadsheetApp.flush();
       return;
@@ -148,23 +155,23 @@ function handleSchedule(e){
 
     if(modifiedDate || modifiedTimeSlot){
       console.log('日程追加の場合はどちらも空白でなければなりません。また、日付/時間帯変更の場合は日付と時間のどちらの入力も必要です。入力は無効です。');
-      writeLogsInFormResponse('日程追加の場合はどちらも空白でなければなりません。また、日付/時間帯変更の場合は日付と時間のどちらの入力も必要です。入力は無効です。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '日程追加の場合はどちらも空白でなければなりません。また、日付/時間帯変更の場合は日付と時間のどちらの入力も必要です。入力は無効です。');
       return;
     }
 
     console.log('日程追加操作を実行します。');
-    processNormalRequest(applicant,opponent,originalDate,timeSlot);
+    processNormalRequest(applicant,opponent,originalDate,timeSlot,responseSheet,responseRow);
     sortRankMatchSchedule();
     SpreadsheetApp.flush();
 
   } catch (err) {
     console.log('日程報告中に予期せぬエラーが発生しました。' + err);
-    writeLogsInFormResponse('日程報告中に予期せぬエラーが発生しました。' + err,true);
+    writeLogsInFormResponse(responseSheet, responseRow, '日程報告中に予期せぬエラーが発生しました。' + err);
   }
 }
 
 // 結果報告を受け取った時の関数
-function handleResult(e){
+function handleResult(e, responseSheet, responseRow){
   try {
     const formData = e.values;
     console.log("結果報告受信: " + JSON.stringify(formData));
@@ -178,23 +185,23 @@ function handleResult(e){
 
     if(applicant === opponent){
       console.log('対戦する人が同一人物です。入力は無効です。');
-      writeLogsInFormResponse('対戦する人が同一人物です。入力は無効です。',false);
+      writeLogsInFormResponse(responseSheet, responseRow, '対戦する人が同一人物です。入力は無効です。');
       return;
     }
 
     if(applicant[1] !== opponent[1]){
       console.log('対戦する人の性別が違います。入力は無効です。');
-      writeLogsInFormResponse('対戦する人の性別が違います。入力は無効です。',false);
+      writeLogsInFormResponse(responseSheet, responseRow, '対戦する人の性別が違います。入力は無効です。');
       return;
     }
 
     console.log('結果報告の書き込みを開始します。');
-    writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,game3Score);
+    writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,game3Score,responseSheet,responseRow);
     updateFormDropdown();
     SpreadsheetApp.flush();
   } catch (err) {
     console.log('結果報告中に予期せぬエラーが発生しました。' + err);
-    writeLogsInFormResponse('結果報告中に予期せぬエラーが発生しました。' + err,false);
+    writeLogsInFormResponse(responseSheet, responseRow, '結果報告中に予期せぬエラーが発生しました。' + err);
   }
 }
 
@@ -203,7 +210,7 @@ function handleResult(e){
 //--------------------
 // キャンセル操作
 //--------------------
-function processCancelRequest(applicant,opponent,originalDate,timeSlot){
+function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseSheet,responseRow){
   try {
     const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
     const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
@@ -214,7 +221,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
     const lastRow = rankMatchScheduleSheet.getLastRow();
     if(lastRow <= HEADER_ROW_OFFSET){
       console.log('対象の試合が見つかりませんでした。入力を再度確認してください。');
-      writeLogsInFormResponse('対象の試合が見つかりませんでした。入力を再度確認してください。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。入力を再度確認してください。');
       return;
     }
 
@@ -243,7 +250,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
 
         if(row[MATCH_RESULT_FLAG_COLUMN] !== ''){
           console.log('該当の試合は存在しますが、すでに結果報告を受け取っているためキャンセルはできません。');
-          writeLogsInFormResponse('該当の試合は存在しますが、すでに結果報告を受け取っているためキャンセルはできません。',true);
+          writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに結果報告を受け取っているためキャンセルはできません。');
           return;
         }
 
@@ -254,26 +261,26 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot){
         }
 
         rankMatchScheduleSheet.deleteRow(idx + HEADER_ROW_OFFSET + 1);
-        manageChallenge(applicantID,false,isMale);
+        manageChallenge(applicantID,false,isMale,responseSheet,responseRow);
         console.log('該当の試合を削除しました。');
         deleteFlag = true;
       }
     })
     if(!deleteFlag){
       console.log('対象の試合が見つかりませんでした。入力を再度確認してください。');
-      writeLogsInFormResponse('対象の試合が見つかりませんでした。入力を再度確認してください。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。入力を再度確認してください。');
     }
 
   } catch (err) {
     console.log('キャンセル処理中にエラーが発生しました。' + err);
-    writeLogsInFormResponse('キャンセル処理中にエラーが発生しました。' + err,true);
+    writeLogsInFormResponse(responseSheet, responseRow, 'キャンセル処理中にエラーが発生しました。' + err);
   }
 }
 
 //--------------------
 // 日程/時間帯変更操作
 //--------------------
-function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedDate,modifiedTimeSlot){
+function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedDate,modifiedTimeSlot,responseSheet,responseRow){
   try {
     const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
     const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
@@ -284,7 +291,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
     const lastRow = rankMatchScheduleSheet.getLastRow();
     if(lastRow <= HEADER_ROW_OFFSET){
       console.log('対象の試合が見つかりませんでした。入力を再度確認してください。');
-      writeLogsInFormResponse('対象の試合が見つかりませんでした。入力を再度確認してください。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。入力を再度確認してください。');
       return;
     }
 
@@ -297,20 +304,20 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
     if(modifiedTimeSlot === '金曜部活内'){
       if(!isFriday(modifiedDate)){
         console.log('部活内を選んだ場合、日付は金曜日でなくてはいけません。');
-        writeLogsInFormResponse('部活内を選んだ場合、日付は金曜日でなくてはいけません。',true);
+        writeLogsInFormResponse(responseSheet, responseRow, '部活内を選んだ場合、日付は金曜日でなくてはいけません。');
         return;
       }
     }
 
     if(isSlotBooked(modifiedDate,modifiedTimeSlot)){
       console.log('変更後の日程はすでに埋まっています。');
-      writeLogsInFormResponse('変更後の日程はすでに埋まっています。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '変更後の日程はすでに埋まっています。');
       return;
     }
 
     if(isMatchedRecently(applicantID,opponentID,modifiedDate)){
       console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
-      writeLogsInFormResponse('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
       return;
     }
 
@@ -333,13 +340,13 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
 
         if(row[MATCH_RESULT_FLAG_COLUMN] !== ''){
           console.log('該当の試合は存在しますが、すでに結果報告を受け取っているため変更はできません。');
-          writeLogsInFormResponse('該当の試合は存在しますが、すでに結果報告を受け取っているため変更はできません。',true);
+          writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに結果報告を受け取っているため変更はできません。');
           return;
         }
 
         if(row[MODIFY_FLAG_COLUMN] !== '可'){
           console.log('該当の試合は存在しますが、すでに一度日程/時間帯変更を行なっているため変更はできません。');
-          writeLogsInFormResponse('該当の試合は存在しますが、すでに一度日程/時間帯変更を行なっているため変更はできません。',true);
+          writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに一度日程/時間帯変更を行なっているため変更はできません。');
           return;
         }
 
@@ -350,26 +357,26 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
         }
 
         rankMatchScheduleSheet.deleteRow(idx + HEADER_ROW_OFFSET + 1);
-        manageChallenge(applicantID,false,isMale);
-        pushNewMatch(applicant,opponent,modifiedDate,modifiedTimeSlot,false,new Date(row[SCHEDULE_FORM_TIMESTAMP_COLUMN]));
+        manageChallenge(applicantID,false,isMale,responseSheet,responseRow);
+        pushNewMatch(applicant,opponent,modifiedDate,modifiedTimeSlot,false,new Date(row[SCHEDULE_FORM_TIMESTAMP_COLUMN]),responseSheet,responseRow);
         console.log('該当の試合の日程/時間帯を変更しました。');
         modifyFlag = true;
       }
     })
     if(!modifyFlag){
       console.log('対象の試合が見つかりませんでした。入力を再度確認してください。');
-      writeLogsInFormResponse('対象の試合が見つかりませんでした。入力を再度確認してください。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。入力を再度確認してください。');
     }
   } catch (err) {
     console.log('日程/時間帯変更処理中にエラーが発生しました。' + err);
-    writeLogsInFormResponse('日程/時間帯変更処理中にエラーが発生しました。' + err,true);
+    writeLogsInFormResponse(responseSheet, responseRow, '日程/時間帯変更処理中にエラーが発生しました。' + err);
   }
 }
 
 //--------------------
 // 日程追加操作
 //--------------------
-function processNormalRequest(applicant,opponent,originalDate,timeSlot){
+function processNormalRequest(applicant,opponent,originalDate,timeSlot,responseSheet,responseRow){
   try {
     const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
     const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
@@ -380,14 +387,14 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot){
     if(timeSlot === '金曜部活内'){
       if(!isFriday(originalDate)){
         console.log('部活内を選んだ場合、日付は金曜日でなくてはいけません。');
-        writeLogsInFormResponse('部活内を選んだ場合、日付は金曜日でなくてはいけません。',true);
+        writeLogsInFormResponse(responseSheet, responseRow, '部活内を選んだ場合、日付は金曜日でなくてはいけません。');
         return;
       }
     }
 
     if(isSlotBooked(originalDate,timeSlot)){
       console.log('その日程はすでに埋まっています。');
-      writeLogsInFormResponse('その日程はすでに埋まっています。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, 'その日程はすでに埋まっています。');
       return;
     }
 
@@ -397,16 +404,16 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot){
       isMale = true;
     }
 
-    if(!canPlayMatch(applicantID,opponentID,isMale)){
+    if(!canPlayMatch(applicantID,opponentID,isMale,responseSheet,responseRow)){
       console.log('この組み合わせの試合は行えません。');
-      writeLogsInFormResponse('この組み合わせの試合は行えません。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, 'この組み合わせの試合は行えません。');
       return;
     }
 
-    pushNewMatch(applicant,opponent,originalDate,timeSlot,true,null);
+    pushNewMatch(applicant,opponent,originalDate,timeSlot,true,null,responseSheet,responseRow);
   } catch (err) {
     console.log('日程追加処理中にエラーが発生しました。' + err);
-    writeLogsInFormResponse('日程追加処理中にエラーが発生しました。' + err,true);
+    writeLogsInFormResponse(responseSheet, responseRow, '日程追加処理中にエラーが発生しました。' + err);
   }
 }
 
@@ -468,7 +475,7 @@ function narrowSchedule(date,matchNumber){
 }
 
 //この組み合わせの試合が可能か判定する関数
-function canPlayMatch(applicantID,opponentID,isMale){
+function canPlayMatch(applicantID,opponentID,isMale,responseSheet,responseRow){
 
   let lastRow,rankData;
   
@@ -486,32 +493,32 @@ function canPlayMatch(applicantID,opponentID,isMale){
   
   if (applicantRowIndex === -1 || opponentRowIndex === -1) {
     console.log('プレイヤーが順位表から見つかりませんでした。');
-    writeLogsInFormResponse('プレイヤーが順位表から見つかりませんでした。',true);
+    writeLogsInFormResponse(responseSheet, responseRow, 'プレイヤーが順位表から見つかりませんでした。');
     return false;
   }
   
   if(applicantRowIndex <= opponentRowIndex){
     console.log('申込者の順位の方が対戦相手よりも高いです。');
-    writeLogsInFormResponse('申込者の順位の方が対戦相手よりも高いです。',true);
+    writeLogsInFormResponse(responseSheet, responseRow, '申込者の順位の方が対戦相手よりも高いです。');
     return false;
   }
 
   if(Number(rankData[applicantRowIndex][MATCH_LIMIT_COLUMN]) <= 0){
     console.log('今月の挑戦権を使い切っています。');
-    writeLogsInFormResponse('今月の挑戦権を使い切っています。',true);
+    writeLogsInFormResponse(responseSheet, responseRow, '今月の挑戦権を使い切っています。');
     return false;
   }
 
   if(rankData[applicantRowIndex][CAN_PLAY_FLAG_COLUMN] !== '可' || rankData[opponentRowIndex][CAN_PLAY_FLAG_COLUMN] !== '可'){
     console.log('プレイヤーが試合できない状態です。');
-    writeLogsInFormResponse('プレイヤーが試合できない状態です。',true);
+    writeLogsInFormResponse(responseSheet, responseRow, 'プレイヤーが試合できない状態です。');
     return false;
   }
 
   let cannotPlayMatchPlayersCount = 0;
 
   for(let i = opponentRowIndex; i < applicantRowIndex; i++){
-    if(rankData[opponentRowIndex][CAN_PLAY_FLAG_COLUMN] !== '可')cannotPlayMatchPlayersCount += 1;
+    if(rankData[i][CAN_PLAY_FLAG_COLUMN] !== '可')cannotPlayMatchPlayersCount += 1;
   }
 
   if(cannotPlayMatchPlayersCount <= 1){
@@ -519,7 +526,7 @@ function canPlayMatch(applicantID,opponentID,isMale){
       return true;
     }else{
       console.log('順位差が大きすぎです。');
-      writeLogsInFormResponse('順位差が大きすぎです。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '順位差が大きすぎです。');
       return false;
     }
   }else{
@@ -527,14 +534,14 @@ function canPlayMatch(applicantID,opponentID,isMale){
       return true;
     }else{
       console.log('順位差が大きすぎです。');
-      writeLogsInFormResponse('順位差が大きすぎです。',true);
+      writeLogsInFormResponse(responseSheet, responseRow, '順位差が大きすぎです。');
       return false;
     }
   }
 }
 
 // 新規日程を追加する関数
-function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmittedDate){
+function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmittedDate,responseSheet,responseRow){
   const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
   const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
   const applicantName = applicant.substring(3,applicant.length-11);
@@ -554,7 +561,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmit
 
   if(isMatchedRecently(applicantID,opponentID,date)){
     console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
-    writeLogsInFormResponse('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。',true);
+    writeLogsInFormResponse(responseSheet, responseRow, '一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
     return;
   }
 
@@ -572,12 +579,12 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmit
   }
 
   rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','','','','',modificationFlag,submitTime,'']);
-  manageChallenge(applicantID,true,isMale);
+  manageChallenge(applicantID,true,isMale,responseSheet,responseRow);
 }
 
 // 挑戦権を管理する関数
 // isUsedがtrueなら減らし、falseなら増やす
-function manageChallenge(id,isUsed,isMale){
+function manageChallenge(id,isUsed,isMale,responseSheet,responseRow){
   let lastRow,rankData;
   
   if(isMale){
@@ -593,7 +600,8 @@ function manageChallenge(id,isUsed,isMale){
   
   if(rowIndex === -1){
     console.log('プレイヤーが順位表から見つかりませんでした。');
-    writeLogsInFormResponse('プレイヤーが順位表から見つかりませんでした。',true);
+    writeLogsInFormResponse(responseSheet, responseRow, 'プレイヤーが順位表から見つかりませんでした。');
+
     return;
   }
 
@@ -606,6 +614,7 @@ function manageChallenge(id,isUsed,isMale){
   }
 }
 
+// クールダウン期間に引っかかっていないかを判定する関数
 function isMatchedRecently(applicantID,opponentID,date){
   const lastRow = rankMatchScheduleSheet.getLastRow();
   if(lastRow <= HEADER_ROW_OFFSET){
@@ -649,7 +658,7 @@ function isFriday(date){
 // 以下結果報告フォームの処理
 
 // 試合日程に結果を書き込む関数
-function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,game3Score){
+function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,game3Score,responseSheet,responseRow){
   const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
   const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
 
@@ -659,7 +668,7 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
   const lastRow = rankMatchScheduleSheet.getLastRow();
   if(lastRow <= HEADER_ROW_OFFSET){
     console.log('対象の試合が見つかりませんでした。この結果報告は無効です。');
-    writeLogsInFormResponse('対象の試合が見つかりませんでした。この結果報告は無効です。',false);
+    writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。この結果報告は無効です。');
     return;
   }
 
@@ -698,7 +707,7 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
 
   if(!isExecuted){
     console.log('対象の試合が見つかりませんでした。この結果報告は無効です。');
-    writeLogsInFormResponse('対象の試合が見つかりませんでした。この結果報告は無効です。',false);
+    writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。この結果報告は無効です。');
     return;
   }
 
@@ -711,11 +720,11 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
 
   console.log('順位表の変動を開始します。');
 
-  changeRanking(applicantID,opponentID,isMale,applytime);
+  changeRanking(applicantID,opponentID,isMale,applytime,responseSheet,responseRow);
 }
 
 // ランキングを変更する関数
-function changeRanking(applicantID,opponentID,isMale,applytime){
+function changeRanking(applicantID,opponentID,isMale,applytime,responseSheet,responseRow){
 
   let lastRow,rankData;
   
@@ -732,13 +741,13 @@ function changeRanking(applicantID,opponentID,isMale,applytime){
 
   if (applicantRowIndex === -1 || opponentRowIndex === -1) {
     console.log('プレイヤーが順位表から見つかりませんでした。');
-    writeLogsInFormResponse('プレイヤーが順位表から見つかりませんでした。',false);
+    writeLogsInFormResponse(responseSheet, responseRow, 'プレイヤーが順位表から見つかりませんでした。');
     return;
   }
   
   if(applicantRowIndex <= opponentRowIndex){
     console.log('申込者の順位の方が対戦相手よりも高いです。');
-    writeLogsInFormResponse('申込者の順位の方が対戦相手よりも高いです。',false);
+    writeLogsInFormResponse(responseSheet, responseRow, '申込者の順位の方が対戦相手よりも高いです。');
     return;
   }
 
@@ -921,17 +930,15 @@ function restoreChallengeRight(){
 }
 
 // フォームに対し、処理のログを書き込む関数
-function writeLogsInFormResponse(message,isScheduleForm){
-  if(isScheduleForm){
-    const lastRow = scheduleFormResponsesSheet.getLastRow();
-    if(lastRow === HEADER_ROW_OFFSET)return;
-    const previousMessage = scheduleFormResponsesSheet.getRange(lastRow,9).getValue();
-    scheduleFormResponsesSheet.getRange(lastRow,9).setValue(previousMessage + message);
+function writeLogsInFormResponse(responseSheet, responseRow, message){
+  const sheetName = responseSheet.getName();
+
+  if(sheetName === '日程報告'){
+    const previousMessage = scheduleFormResponsesSheet.getRange(responseRow,9).getValue();
+    scheduleFormResponsesSheet.getRange(responseRow,9).setValue(previousMessage + message);
   }else{
-    const lastRow = resultFormResponsesSheet.getLastRow();
-    if(lastRow === HEADER_ROW_OFFSET)return;
-    const previousMessage = resultFormResponsesSheet.getRange(lastRow,8).getValue();
-    resultFormResponsesSheet.getRange(lastRow,8).setValue(previousMessage + message);
+    const previousMessage = resultFormResponsesSheet.getRange(responseRow,8).getValue();
+    resultFormResponsesSheet.getRange(responseRow,8).setValue(previousMessage + message);
   }
 }
 
