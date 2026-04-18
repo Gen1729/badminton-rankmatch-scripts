@@ -119,19 +119,19 @@ function handleSchedule(e, responseSheet, responseRow){
       return;
     }
 
-    if(originalDate < today){
+    if(originalDate.getTime() < today.getTime()){
       console.log('日付が過去のものです。入力は無効です。');
       writeLogsInFormResponse(responseSheet, responseRow, '日付が過去のものです。入力は無効です。');
       return;
     }
 
-    if(applicationScope < originalDate){
+    if(applicationScope.getTime() < originalDate.getTime()){
       console.log('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       writeLogsInFormResponse(responseSheet, responseRow, '日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       return;
     }
 
-    if(modifiedDate && applicationScope < modifiedDate){
+    if(modifiedDate && applicationScope.getTime() < modifiedDate.getTime()){
       console.log('日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       writeLogsInFormResponse(responseSheet, responseRow, '日付が未来すぎます。' + MATCH_ACCEPT_DAY_LIMIT + '日以内の日程のみ許可します。入力は無効です。');
       return;
@@ -145,8 +145,9 @@ function handleSchedule(e, responseSheet, responseRow){
     }
 
     if(modifiedDate && modifiedTimeSlot){
-      if(originalDate === modifiedDate && timeSlot === modifiedTimeSlot){
+      if(originalDate.getTime() === modifiedDate.getTime() && timeSlot === modifiedTimeSlot){
         console.log('変更前と変更後の日付/時間帯が同じです。');
+        writeLogsInFormResponse(responseSheet, responseRow, '変更前と変更後の日付/時間帯が同じです。');
         return;
       }
       console.log('日付/時間帯変更操作を実行します。');
@@ -239,9 +240,9 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseS
 
     const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
     let deleteFlag = false;
-    matchData.forEach((row,idx) => {
+    for(let idx = 0;idx < matchData.length;idx++){
+      const row = matchData[idx];
       if(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID && (new Date(row[MATCH_DATE_COLUMN])).getTime() === originalDate.getTime()){
-        
         if(timeSlot === '金曜部活内'){
           if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他'){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
@@ -270,8 +271,9 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseS
         manageChallenge(applicantID,false,isMale,responseSheet,responseRow);
         console.log('該当の試合を削除しました。');
         deleteFlag = true;
+        break;
       }
-    })
+    }
     if(!deleteFlag){
       console.log('対象の試合が見つかりませんでした。入力を再度確認してください。');
       writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。入力を再度確認してください。');
@@ -321,17 +323,17 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
       return;
     }
 
-    if(isMatchedRecently(applicantID,opponentID,modifiedDate)){
-      console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
-      writeLogsInFormResponse(responseSheet, responseRow, '一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
+    if(isMatchedRecently(applicantID,opponentID,modifiedDate,originalDate)){
+      console.log('一部の例外を除き同じカードの対戦は' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
+      writeLogsInFormResponse(responseSheet, responseRow, '一部の例外を除き同じカードの対戦は' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
       return;
     }
 
     const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
     let modifyFlag = false;
-    matchData.forEach((row,idx) => {
+    for(let idx = 0;idx < matchData.length;idx++){
+      const row = matchData[idx];
       if(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID && (new Date(row[MATCH_DATE_COLUMN])).getTime() === originalDate.getTime()){
-        
         if(timeSlot === '金曜部活内'){
           if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他'){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
@@ -367,8 +369,9 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
         pushNewMatch(applicant,opponent,modifiedDate,modifiedTimeSlot,false,new Date(row[SCHEDULE_FORM_TIMESTAMP_COLUMN]),responseSheet,responseRow);
         console.log('該当の試合の日程/時間帯を変更しました。');
         modifyFlag = true;
+        break;
       }
-    })
+    }
     if(!modifyFlag){
       console.log('対象の試合が見つかりませんでした。入力を再度確認してください。');
       writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。入力を再度確認してください。');
@@ -565,9 +568,9 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmit
     isMale = true;
   }
 
-  if(isMatchedRecently(applicantID,opponentID,date)){
-    console.log('一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
-    writeLogsInFormResponse(responseSheet, responseRow, '一部の例外を除き同じカードの対戦は前回の対戦から' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
+  if(isMatchedRecently(applicantID,opponentID,date,null)){
+    console.log('一部の例外を除き同じカードの対戦は' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
+    writeLogsInFormResponse(responseSheet, responseRow, '一部の例外を除き同じカードの対戦は' + SAME_OPPONENT_COOLDOWN_DAYS + '日以上空けなければなりません。');
     return;
   }
 
@@ -621,36 +624,40 @@ function manageChallenge(id,isUsed,isMale,responseSheet,responseRow){
 }
 
 // クールダウン期間に引っかかっていないかを判定する関数
-function isMatchedRecently(applicantID,opponentID,date){
+function isMatchedRecently(applicantID,opponentID,date,exceptionDate){
   const lastRow = rankMatchScheduleSheet.getLastRow();
   if(lastRow <= HEADER_ROW_OFFSET){
     return false;
   }
 
-  const scope = new Date();
-  scope.setHours(0,0,0,0);
-  scope.setDate(date.getDate() - SAME_OPPONENT_COOLDOWN_DAYS);
+  const scopeBefore = new Date();
+  scopeBefore.setHours(0,0,0,0);
+  scopeBefore.setDate(date.getDate() - SAME_OPPONENT_COOLDOWN_DAYS);
+
+  const scopeAfter = new Date();
+  scopeAfter.setHours(0,0,0,0);
+  scopeAfter.setDate(date.getDate() + SAME_OPPONENT_COOLDOWN_DAYS);
+
+  const now = new Date();
+  now.setHours(0,0,0,0);
 
   const matchData = rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,lastRow-1,RANK_MATCH_SHEET_MAX_COLUMN).getValues();
-  let recentlyCounterMatchedFlag = false;
+  let isMatchedFlag = false;
+
   matchData.forEach((row) => {
     if(!(row[APPLICANT_ID_COLUMN] === opponentID && row[OPPONENT_ID_COLUMN] === applicantID))return;
-    if(new Date(row[MATCH_DATE_COLUMN]) > scope && row[MATCH_RESULT_FLAG_COLUMN] !== '' && row[MATCH_RESULT_COLUMN] !== '敗北'){
-      recentlyCounterMatchedFlag = true;
-    }
+    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= scopeBefore.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime() && row[MATCH_RESULT_FLAG_COLUMN] !== '' && row[MATCH_RESULT_COLUMN] !== '敗北')isMatchedFlag = true;
+    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= now.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime())isMatchedFlag = true;
   })
-  if(recentlyCounterMatchedFlag)return true;
 
-  let recentlyReMatchedFlag = false;
   matchData.forEach((row) => {
     if(!(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID))return;
-    if(new Date(row[MATCH_DATE_COLUMN]) > scope && row[MATCH_RESULT_COLUMN] === '敗北'){
-      recentlyReMatchedFlag = true;
-    }
+    if(exceptionDate && new Date(row[MATCH_DATE_COLUMN]).getTime() === exceptionDate.getTime())return;
+    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= scopeBefore.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime() && row[MATCH_RESULT_COLUMN] === '敗北')isMatchedFlag = true;
+    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= now.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime())isMatchedFlag = true;
   })
 
-  if(recentlyReMatchedFlag)return true;
-  else return false;
+  return isMatchedFlag;
 }
 
 // 金曜日かどうか判定する関数
