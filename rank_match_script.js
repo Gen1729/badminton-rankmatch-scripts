@@ -246,19 +246,19 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseS
         if(timeSlot === '金曜部活内'){
           if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他'){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            return;
+            continue;
           }
         }else{
           if(row[MATCH_TIMESLOT_COLUMN] !== timeSlot){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            return;
+            continue;
           }
         }
 
         if(row[MATCH_RESULT_FLAG_COLUMN] !== ''){
           console.log('該当の試合は存在しますが、すでに結果報告を受け取っているためキャンセルはできません。');
           writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに結果報告を受け取っているためキャンセルはできません。');
-          return;
+          continue;
         }
 
         if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
@@ -337,25 +337,25 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
         if(timeSlot === '金曜部活内'){
           if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他'){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            return;
+            continue;
           }
         }else{
           if(row[MATCH_TIMESLOT_COLUMN] !== timeSlot){
             console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            return;
+            continue;
           }
         }
 
         if(row[MATCH_RESULT_FLAG_COLUMN] !== ''){
           console.log('該当の試合は存在しますが、すでに結果報告を受け取っているため変更はできません。');
           writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに結果報告を受け取っているため変更はできません。');
-          return;
+          continue;
         }
 
         if(row[MODIFY_FLAG_COLUMN] !== '可'){
           console.log('該当の試合は存在しますが、すでに一度日程/時間帯変更を行なっているため変更はできません。');
           writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに一度日程/時間帯変更を行なっているため変更はできません。');
-          return;
+          continue;
         }
 
         if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
