@@ -90,8 +90,8 @@ function handleSchedule(e, responseSheet, responseRow){
     const formData = e.values;
     console.log("新規日程報告受信: " + JSON.stringify(formData));
     const timestamp = formData[0];
-    const applicant = formData[1];
-    const opponent = formData[2];
+    const applicantRowString = formData[1];
+    const opponentRowString = formData[2];
     const originalDate = new Date(formData[3]);
     const timeSlot = formData[4];
     const cancelFlag = formData[5];
@@ -104,13 +104,16 @@ function handleSchedule(e, responseSheet, responseRow){
     applicationScope.setHours(0,0,0,0);
     applicationScope.setDate(applicationScope.getDate() + MATCH_ACCEPT_DAY_LIMIT);
 
-    if(applicant === opponent){
+    const applicant = parsePlayerLabel(applicantRowString);
+    const opponent = parsePlayerLabel(opponentRowString);
+    
+    if(applicant.id === opponent.id){
       console.log('対戦する人が同一人物です。入力は無効です。');
       writeLogsInFormResponse(responseSheet, responseRow, '対戦する人が同一人物です。入力は無効です。');
       return;
     }
 
-    if(applicant[1] !== opponent[1]){
+    if(applicant.gender !== opponent.gender){
       console.log('対戦する人の性別が違います。入力は無効です。');
       writeLogsInFormResponse(responseSheet, responseRow, '対戦する人の性別が違います。入力は無効です。');
       return;
@@ -176,20 +179,23 @@ function handleResult(e, responseSheet, responseRow){
     const formData = e.values;
     console.log("結果報告受信: " + JSON.stringify(formData));
     const timestamp = formData[0];
-    const applicant = formData[1];
-    const opponent = formData[2];
+    const applicantRowString = formData[1];
+    const opponentRowString = formData[2];
     const matchResult = formData[3];
     const game1Score = formData[4] ? formData[4] : null;
     const game2Score = formData[5] ? formData[5] : null;
     const game3Score = formData[6] ? formData[6] : null;
 
-    if(applicant === opponent){
+    const applicant = parsePlayerLabel(applicantRowString);
+    const opponent = parsePlayerLabel(opponentRowString);
+
+    if(applicant.id === opponent.id){
       console.log('対戦する人が同一人物です。入力は無効です。');
       writeLogsInFormResponse(responseSheet, responseRow, '対戦する人が同一人物です。入力は無効です。');
       return;
     }
 
-    if(applicant[1] !== opponent[1]){
+    if(applicant.gender !== opponent.gender){
       console.log('対戦する人の性別が違います。入力は無効です。');
       writeLogsInFormResponse(responseSheet, responseRow, '対戦する人の性別が違います。入力は無効です。');
       return;
@@ -212,8 +218,8 @@ function handleResult(e, responseSheet, responseRow){
 //--------------------
 function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseSheet,responseRow){
   try {
-    const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
-    const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
+    const applicantID = applicant.id;
+    const opponentID  = opponent .id;
 
     console.log(applicantID);
     console.log(opponentID);
@@ -227,7 +233,7 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseS
 
     let isMale = false;
 
-    if(applicant[1] === '男'){
+    if(applicant.gender === '男'){
       isMale = true;
     }
 
@@ -282,8 +288,8 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseS
 //--------------------
 function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedDate,modifiedTimeSlot,responseSheet,responseRow){
   try {
-    const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
-    const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
+    const applicantID = applicant.id;
+    const opponentID  = opponent .id;
 
     console.log(applicantID);
     console.log(opponentID);
@@ -297,7 +303,7 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
 
     let isMale = false;
 
-    if(applicant[1] === '男'){
+    if(applicant.gender === '男'){
       isMale = true;
     }
 
@@ -378,8 +384,8 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
 //--------------------
 function processNormalRequest(applicant,opponent,originalDate,timeSlot,responseSheet,responseRow){
   try {
-    const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
-    const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
+    const applicantID = applicant.id;
+    const opponentID  = opponent .id;
     
     console.log(applicantID);
     console.log(opponentID);
@@ -400,7 +406,7 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot,responseS
 
     let isMale = false;
 
-    if(applicant[1] === '男'){
+    if(applicant.gender === '男'){
       isMale = true;
     }
 
@@ -542,10 +548,10 @@ function canPlayMatch(applicantID,opponentID,isMale,responseSheet,responseRow){
 
 // 新規日程を追加する関数
 function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmittedDate,responseSheet,responseRow){
-  const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
-  const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
-  const applicantName = applicant.substring(3,applicant.length-11);
-  const opponentName  = opponent .substring(3,opponent .length-11);
+  const applicantID = applicant.id;
+  const opponentID  = opponent .id;
+  const applicantName = applicant.name;
+  const opponentName  = opponent .name;
 
   console.log(applicantID);
   console.log(opponentID);
@@ -555,7 +561,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmit
 
   let isMale = false;
 
-  if(applicant[1] === '男'){
+  if(applicant.gender === '男'){
     isMale = true;
   }
 
@@ -659,8 +665,8 @@ function isFriday(date){
 
 // 試合日程に結果を書き込む関数
 function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,game3Score,responseSheet,responseRow){
-  const applicantID = applicant.substring(applicant.length-9,applicant.length-1);
-  const opponentID  = opponent .substring(opponent .length-9,opponent .length-1);
+  const applicantID = applicant.id;
+  const opponentID  = opponent .id;
 
   console.log(applicantID);
   console.log(opponentID);
@@ -674,7 +680,7 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
 
   let isMale = false;
 
-  if(applicant[1] === '男'){
+  if(applicant.gender === '男'){
     isMale = true;
   }
 
@@ -827,6 +833,16 @@ function isOpponentPromoted(time,opponentID){
 // 以上結果報告の関数
 // -----------------------------------------
 // 以下その他の関数
+
+// 性別、名前、IDを返す関数
+function parsePlayerLabel(label) {
+  const text = String(label || '').trim();
+  const m = text.match(/^\((男|女)\)\s*(.+?)\s*\(([^()]+)\)$/);
+  if (!m) {
+    throw new Error(`プレイヤー表記が不正です: ${text}`);
+  }
+  return { gender: m[1], name: m[2].trim(), id: m[3].trim() };
+}
 
 //時系列順にソートする関数
 function sortRankMatchSchedule(){
