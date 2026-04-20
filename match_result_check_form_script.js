@@ -52,9 +52,9 @@ function sendResultEmail(mailAdress,data,victory,defeat,applicant,opponent) {
   const subject = "ランク戦結果確認";
   let body = '';
   if(opponent){
-    body = `以下、${applicant} さん 対 ${opponent} さんの過去のランク戦結果です。`;
+    body = `以下、${applicant} さん 対 ${opponent} さんの過去のランク戦結果です。\n`;
   }else{
-    body = `以下、${applicant} さんの過去のランク戦結果です。`;
+    body = `以下、${applicant} さんの過去のランク戦結果です。\n`;
   }
 
   if(victory == 0 && defeat == 0){
@@ -63,15 +63,24 @@ function sendResultEmail(mailAdress,data,victory,defeat,applicant,opponent) {
     }else{
       GmailApp.sendEmail(recipient, subject, `${applicant} さんの試合は存在しませんでした。`);
     }
-    
+    return;
   }
 
+  const applicantNameAndId = applicant.substring(3);
+  const applicantID = applicantNameAndId.match(/\(([^)]+)\)/)?.[1] ?? 'xxxxxxxx';
+
   const matchResult = data.map(row => {
-    const scores = [row[8], row[9], row[10]].map(s => s || 'x-x').join(' ');
+    const scores = [row[8], row[9], row[10]].filter(s => s !== '' && s != null).join(' ');
     const d = new Date(row[4]);
     const formatted = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
-    return `${formatted} ${row[7]} ${row[1]} (${row[0]}) vs ${row[3]} (${row[2]}) ${scores}`;
+    let result = row[7];
+    if(row[0] !== applicantID){
+      if(result === '勝利')result = '敗北';
+      else if(row[7] === '敗北')result = '勝利';
+      else if(row[7] === '不戦勝')result = '不戦敗';
+    }
+    return `${formatted} ${result} ${row[1]} (${row[0]}) vs ${row[3]} (${row[2]}) ${scores}`;
   }).join('\n');
 
-  GmailApp.sendEmail(recipient, subject, body + '\n' + matchResult + '\n\n' + victory + '勝' + defeat + '敗');
+  GmailApp.sendEmail(recipient, subject, body + '\n' + matchResult + '\n\n' + victory + '勝' + defeat + '敗'+`（勝率：${((100 * victory)/(victory+defeat)).toFixed(2)}％）`);
 }
