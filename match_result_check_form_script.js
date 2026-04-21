@@ -57,6 +57,11 @@ function sendResultEmail(mailAdress,data,victory,defeat,applicant,opponent) {
     body = `以下、${applicant} さんの過去のランク戦結果です。\n`;
   }
 
+  if(applicant === opponent){
+    GmailApp.sendEmail(recipient, subject,`同一人物同士の対戦はできません。`);
+    return;
+  }
+  
   if(victory == 0 && defeat == 0){
     if(opponent){
       GmailApp.sendEmail(recipient, subject, `${applicant} さん 対 ${opponent} さんの試合は存在しませんでした。`);
