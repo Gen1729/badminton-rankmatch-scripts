@@ -826,7 +826,7 @@ function changeRanking(applicantID,opponentID,isMale,applytime,responseSheet,res
   
   if(applicantRowIndex <= opponentRowIndex){
     console.log('申込者の順位の方が対戦相手よりも高いです。');
-    writeLogsInFormResponse(responseSheet, responseRow, '申込者の順位の方が対戦相手よりも高いです。');
+    // writeLogsInFormResponse(responseSheet, responseRow, '申込者の順位の方が対戦相手よりも高いです。');
     return;
   }
 
