@@ -723,14 +723,14 @@ function isMatchedRecently(applicantID,opponentID,date,exceptionDate){
   matchData.forEach((row) => {
     if(!(row[APPLICANT_ID_COLUMN] === opponentID && row[OPPONENT_ID_COLUMN] === applicantID))return;
     if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= scopeBefore.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime() && row[MATCH_RESULT_FLAG_COLUMN] !== '' && row[MATCH_RESULT_COLUMN] !== '敗北')isMatchedFlag = true;
-    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= now.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime())isMatchedFlag = true;
+    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= now.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime() && row[MATCH_RESULT_FLAG_COLUMN] === '')isMatchedFlag = true;
   })
 
   matchData.forEach((row) => {
     if(!(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID))return;
     if(exceptionDate && new Date(row[MATCH_DATE_COLUMN]).getTime() === exceptionDate.getTime())return;
     if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= scopeBefore.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime() && row[MATCH_RESULT_COLUMN] === '敗北')isMatchedFlag = true;
-    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= now.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime())isMatchedFlag = true;
+    if(new Date(row[MATCH_DATE_COLUMN]).getTime() >= now.getTime() && new Date(row[MATCH_DATE_COLUMN]).getTime() <= scopeAfter.getTime() && row[MATCH_RESULT_FLAG_COLUMN] === '')isMatchedFlag = true;
   })
 
   return isMatchedFlag;
