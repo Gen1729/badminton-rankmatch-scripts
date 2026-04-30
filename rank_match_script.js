@@ -24,7 +24,7 @@ const MATCH_ACCEPT_DAY_LIMIT = configSheet.getRange(MATCH_ACCEPT_DAY_LIMIT_CELL)
 const SAME_OPPONENT_COOLDOWN_DAYS = configSheet.getRange(SAME_OPPONENT_COOLDOWN_DAYS_CELL).getValue();
 const FRIDAY_MATCH_NUMBER = configSheet.getRange(FRIDAY_MATCH_NUMBER_CELL).getValue();
 
-const timeSlotSortOrder = { '部活時間外': 0, '部活中': 1, 'その他': 2 };
+const timeSlotSortOrder = { '部活中': 0, '部活時間外': 1, 'その他': 2 };
 
 const HEADER_ROW_OFFSET = 1;
 
@@ -920,26 +920,26 @@ function sortRankMatchSchedule(){
   }
   matchData.sort((a, b) => {
     if(new Date(a[MATCH_DATE_COLUMN]).getTime() - new Date(b[MATCH_DATE_COLUMN]).getTime() !== 0){
-      return new Date(a[MATCH_DATE_COLUMN]).getTime() - new Date(b[MATCH_DATE_COLUMN]).getTime();
+      return -(new Date(a[MATCH_DATE_COLUMN]).getTime() - new Date(b[MATCH_DATE_COLUMN]).getTime());
     }
 
     let a_order,b_order;
     if(a[MATCH_TIMESLOT_COLUMN] in timeSlotSortOrder === false){
-      a_order = 1;
+      a_order = 0;
     }else{
       a_order = timeSlotSortOrder[a[MATCH_TIMESLOT_COLUMN]];
     }
     if(b[MATCH_TIMESLOT_COLUMN] in timeSlotSortOrder === false){
-      b_order = 1;
+      b_order = 0;
     }else{
       b_order = timeSlotSortOrder[b[MATCH_TIMESLOT_COLUMN]];
     }
 
-    if(a_order !== b_order || a_order !== 1)return a_order - b_order;
+    if(a_order !== b_order || a_order !== 0)return a_order - b_order;
     else{
       const na = Number(a[MATCH_TIMESLOT_COLUMN].match(/\((\d+)試合目\)/)?.[1] ?? 0);
       const nb = Number(b[MATCH_TIMESLOT_COLUMN].match(/\((\d+)試合目\)/)?.[1] ?? 0);
-      return na - nb;
+      return -(na - nb);
     }
   });
   rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1,1,matchData.length,RANK_MATCH_SHEET_MAX_COLUMN).setValues(matchData);
