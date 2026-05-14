@@ -666,7 +666,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmit
     slotString = '部活中(' + nextMatchNumber + '試合目)';
   }
 
-  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','','','','',modificationFlag,submitTime,'']);
+  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'未報告','','','','',modificationFlag,submitTime,'']);
   markRankMatchDirty();
   manageChallenge(applicantID,true,isMale,responseSheet,responseRow);
 }
@@ -783,7 +783,7 @@ function writeMatchResult(applicant,opponent,matchResult,game1Score,game2Score,g
         return;
       }
 
-      rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_RESULT_FLAG_COLUMN + 1,1,6).setValues([['済',matchResult,game1Score,game2Score,game3Score,"不可"]]);
+      rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_RESULT_FLAG_COLUMN + 1,1,6).setValues([['済',matchResult,game1Score,game2Score,game3Score,'不可']]);
       rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,RESULT_FORM_TIMESTAMP_COLUMN + 1).setValue(new Date());
       markRankMatchDirty();
 
