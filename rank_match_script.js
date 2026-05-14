@@ -666,7 +666,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmit
     slotString = '部活中(' + nextMatchNumber + '試合目)';
   }
 
-  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'未報告','','','','',modificationFlag,submitTime,'']);
+  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','','','','',modificationFlag,submitTime,'']);
   markRankMatchDirty();
   manageChallenge(applicantID,true,isMale,responseSheet,responseRow);
 }
@@ -1001,17 +1001,40 @@ function updateFormDropdown() {
 
 // 月初めに挑戦権を回復させる関数(定期実行)
 function restoreChallengeRight(){
-  const now = new Date();
-  const month = now.getMonth(); 
-  const cell = MONTH_APPLICATION_LIMIT_CELL[0] + String(Number(MONTH_APPLICATION_LIMIT_CELL[1]) + month + 1);
-  const monthApplicationLimit = configSheet.getRange(cell).getValue();
-  maleSheet.getRange('F2:F' + maleSheet.getLastRow()).setValue(monthApplicationLimit);
-  maleSheet.getRange('G2:G' + maleSheet.getLastRow()).setValue('可');
-  femaleSheet.getRange('F2:F' + femaleSheet.getLastRow()).setValue(monthApplicationLimit);
-  femaleSheet.getRange('G2:G' + femaleSheet.getLastRow()).setValue('可');
-  markMaleRankDirty();
-  markFemaleRankDirty();
-  console.log('挑戦権を回復させました。');
+  const lock = LockService.getScriptLock();
+  let lockAcquired = false;
+
+  try {
+    lock.waitLock(30000);
+    lockAcquired = true;
+  } catch (err) {
+    const message = '他の処理が終わっていないため、挑戦権を回復するプログラムを行えませんでした。';
+    console.log(message);
+    return;
+  }
+
+  try {
+    resetDataCache();
+
+    const now = new Date();
+    const month = now.getMonth(); 
+    const cell = MONTH_APPLICATION_LIMIT_CELL[0] + String(Number(MONTH_APPLICATION_LIMIT_CELL[1]) + month + 1);
+    const monthApplicationLimit = configSheet.getRange(cell).getValue();
+    maleSheet.getRange('F2:F' + maleSheet.getLastRow()).setValue(monthApplicationLimit);
+    maleSheet.getRange('G2:G' + maleSheet.getLastRow()).setValue('可');
+    femaleSheet.getRange('F2:F' + femaleSheet.getLastRow()).setValue(monthApplicationLimit);
+    femaleSheet.getRange('G2:G' + femaleSheet.getLastRow()).setValue('可');
+    markMaleRankDirty();
+    markFemaleRankDirty();
+
+    console.log('挑戦権を回復させました。');
+  } catch (err) {
+    console.log('毎月行う挑戦権を回復するプログラムにエラーが発生しました。' + err)
+  } finally {
+    if(lockAcquired){
+      lock.releaseLock();
+    }
+  }
 }
 
 // フォームに対し、処理のログを書き込む関数
@@ -1067,4 +1090,42 @@ function buildRankingsByDepartment(){
   maleSheetByDepartment  .getRange(HEADER_ROW_OFFSET + 1,8,maleInsuranceData  .length,4).setValues(maleInsuranceData  );
   femaleSheetByDepartment.getRange(HEADER_ROW_OFFSET + 1,2,femaleMedicineData .length,4).setValues(femaleMedicineData );
   femaleSheetByDepartment.getRange(HEADER_ROW_OFFSET + 1,8,femaleInsuranceData.length,4).setValues(femaleInsuranceData);
+}
+
+// 毎日行う試合予定日付を過ぎた際に、結果報告済みカラムに未報告と表示し、日程変更可能カラムを不可にする関数(定期実行)
+function updateOverdueSchedule(){
+  const lock = LockService.getScriptLock();
+  let lockAcquired = false;
+
+  try {
+    lock.waitLock(30000);
+    lockAcquired = true;
+  } catch (err) {
+    const message = '他の処理が終わっていないため、毎日行う日付が過ぎた試合の結果報告を未報告にするプログラムを行えませんでした。';
+    console.log(message);
+    return;
+  }
+
+  try {
+    resetDataCache();
+    const matchData = getRankMatchData();
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    matchData.forEach((row,idx) => {
+      if(new Date(row[MATCH_DATE_COLUMN]).getTime() < today.getTime() && !row[MATCH_RESULT_FLAG_COLUMN]){
+        rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_RESULT_FLAG_COLUMN + 1,1,6).setValues([['未報告','','','','','不可']]);
+      }
+    })
+    markRankMatchDirty();
+
+    console.log('日付が過ぎた試合日程に未報告と記入しました。');
+  } catch (err) {
+    console.log('毎日行う日付が過ぎた試合の結果報告を未報告にするプログラムにエラーが発生しました。' + err)
+  } finally {
+    if(lockAcquired){
+      lock.releaseLock();
+    }
+  }
 }
