@@ -18,6 +18,7 @@ const MATCH_ACCEPT_DAY_LIMIT_CELL = 'B3';
 const SAME_OPPONENT_COOLDOWN_DAYS_CELL = 'B5';
 const MONTH_APPLICATION_LIMIT_CELL = 'B7';
 const FRIDAY_MATCH_NUMBER_CELL = 'B21';
+const MONTH_APPLICATION_LIMIT_RESET_CELL = 'B23';
 
 const MAX_RANK_DIFFERENCE = configSheet.getRange(MAX_RANK_DIFFERENCE_CELL).getValue();
 const MATCH_ACCEPT_DAY_LIMIT = configSheet.getRange(MATCH_ACCEPT_DAY_LIMIT_CELL).getValue();
@@ -999,7 +1000,26 @@ function updateFormDropdown() {
   console.log('フォームの選択肢の順番を変更しました。');
 }
 
-// 月初めに挑戦権を回復させる関数(定期実行)
+// 月初めに今月が挑戦回数リセット日かどうかを確かめる関数（定期実行）
+function isMonthToResetChallengeRight(){
+  try {
+    const now = new Date();
+    const month = now.getMonth(); 
+    const cell = MONTH_APPLICATION_LIMIT_RESET_CELL[0] + String(Number(MONTH_APPLICATION_LIMIT_RESET_CELL.slice(1)) + month + 1);
+    const isResetMonth = configSheet.getRange(cell).getValue();
+
+    if(isResetMonth === 'Y'){
+      console.log('毎月行う挑戦権をリセットするプログラムの実行を開始します。')
+      restoreChallengeRight();
+    }else{
+      console.log('今月は挑戦権をリセットするプログラムを実行しません。')
+    }
+  } catch (err) {
+    console.log('毎月行う挑戦権を回復するプログラムにエラーが発生しました。' + err)
+  }
+}
+
+// 挑戦権を回復させる関数
 function restoreChallengeRight(){
   const lock = LockService.getScriptLock();
   let lockAcquired = false;
@@ -1018,7 +1038,7 @@ function restoreChallengeRight(){
 
     const now = new Date();
     const month = now.getMonth(); 
-    const cell = MONTH_APPLICATION_LIMIT_CELL[0] + String(Number(MONTH_APPLICATION_LIMIT_CELL[1]) + month + 1);
+    const cell = MONTH_APPLICATION_LIMIT_CELL[0] + String(Number(MONTH_APPLICATION_LIMIT_CELL.slice(1)) + month + 1);
     const monthApplicationLimit = configSheet.getRange(cell).getValue();
     maleSheet.getRange('F2:F' + maleSheet.getLastRow()).setValue(monthApplicationLimit);
     maleSheet.getRange('G2:G' + maleSheet.getLastRow()).setValue('可');
