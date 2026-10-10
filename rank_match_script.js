@@ -334,28 +334,15 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseS
     for(let idx = 0;idx < matchData.length;idx++){
       const row = matchData[idx];
       if(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID && (new Date(row[MATCH_DATE_COLUMN])).getTime() === originalDate.getTime()){
-        if(timeSlot === '金曜部活内'){
-          if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他'){
-            console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            continue;
-          }
-        }else{
-          if(row[MATCH_TIMESLOT_COLUMN] !== timeSlot){
-            console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            continue;
-          }
+        if(row[MATCH_TIMESLOT_COLUMN] !== timeSlot){
+          console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
+          continue;
         }
 
         if(row[MATCH_RESULT_FLAG_COLUMN] !== ''){
           console.log('該当の試合は存在しますが、すでに結果報告を受け取っているためキャンセルはできません。');
           writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに結果報告を受け取っているためキャンセルはできません。');
           continue;
-        }
-
-        if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
-          if(Number(row[MATCH_TIMESLOT_COLUMN][4]) !== FRIDAY_MATCH_NUMBER){
-            narrowSchedule(originalDate,Number(row[MATCH_TIMESLOT_COLUMN][4]));
-          }
         }
 
         rankMatchScheduleSheet.deleteRow(idx + HEADER_ROW_OFFSET + 1);
@@ -370,7 +357,6 @@ function processCancelRequest(applicant,opponent,originalDate,timeSlot,responseS
       console.log('対象の試合が見つかりませんでした。入力を再度確認してください。');
       writeLogsInFormResponse(responseSheet, responseRow, '対象の試合が見つかりませんでした。入力を再度確認してください。');
     }
-
   } catch (err) {
     console.log('キャンセル処理中にエラーが発生しました。' + err);
     writeLogsInFormResponse(responseSheet, responseRow, 'キャンセル処理中にエラーが発生しました。' + err);
@@ -401,10 +387,10 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
       isMale = true;
     }
 
-    if(modifiedTimeSlot === '金曜部活内'){
+    if(modifiedTimeSlot.includes('部活中')){
       if(!isFriday(modifiedDate)){
-        console.log('部活内を選んだ場合、日付は金曜日でなくてはいけません。');
-        writeLogsInFormResponse(responseSheet, responseRow, '部活内を選んだ場合、日付は金曜日でなくてはいけません。');
+        console.log('部活中を選んだ場合、日付は金曜日でなくてはいけません。');
+        writeLogsInFormResponse(responseSheet, responseRow, '部活中を選んだ場合、日付は金曜日でなくてはいけません。');
         return;
       }
     }
@@ -425,16 +411,9 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
     for(let idx = 0;idx < matchData.length;idx++){
       const row = matchData[idx];
       if(row[APPLICANT_ID_COLUMN] === applicantID && row[OPPONENT_ID_COLUMN] === opponentID && (new Date(row[MATCH_DATE_COLUMN])).getTime() === originalDate.getTime()){
-        if(timeSlot === '金曜部活内'){
-          if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他'){
-            console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            continue;
-          }
-        }else{
-          if(row[MATCH_TIMESLOT_COLUMN] !== timeSlot){
-            console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
-            continue;
-          }
+        if(row[MATCH_TIMESLOT_COLUMN] !== timeSlot){
+          console.log('対戦カードと日付は合っていますが、時間帯が正しくありません。入力を再度確認してください。');
+          continue;
         }
 
         if(row[MATCH_RESULT_FLAG_COLUMN] !== ''){
@@ -447,12 +426,6 @@ function processModifyRequest(applicant,opponent,originalDate,timeSlot,modifiedD
           console.log('該当の試合は存在しますが、すでに一度日程/時間帯変更を行なっているため変更はできません。');
           writeLogsInFormResponse(responseSheet, responseRow, '該当の試合は存在しますが、すでに一度日程/時間帯変更を行なっているため変更はできません。');
           continue;
-        }
-
-        if(row[MATCH_TIMESLOT_COLUMN] !== '部活時間外' && row[MATCH_TIMESLOT_COLUMN] !== 'その他'){
-          if(Number(row[MATCH_TIMESLOT_COLUMN][4]) !== FRIDAY_MATCH_NUMBER){
-            narrowSchedule(originalDate,Number(row[MATCH_TIMESLOT_COLUMN][4]));
-          }
         }
 
         rankMatchScheduleSheet.deleteRow(idx + HEADER_ROW_OFFSET + 1);
@@ -485,10 +458,10 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot,responseS
     console.log(applicantID);
     console.log(opponentID);
 
-    if(timeSlot === '金曜部活内'){
+    if(timeSlot.includes('部活中')){
       if(!isFriday(originalDate)){
-        console.log('部活内を選んだ場合、日付は金曜日でなくてはいけません。');
-        writeLogsInFormResponse(responseSheet, responseRow, '部活内を選んだ場合、日付は金曜日でなくてはいけません。');
+        console.log('部活中を選んだ場合、日付は金曜日でなくてはいけません。');
+        writeLogsInFormResponse(responseSheet, responseRow, '部活中を選んだ場合、日付は金曜日でなくてはいけません。');
         return;
       }
     }
@@ -521,56 +494,22 @@ function processNormalRequest(applicant,opponent,originalDate,timeSlot,responseS
 // その日が試合で埋まっているかを判定する関数
 // 金曜日の強化練の時は判定するがそれ以外の場合は必ずfalseを返す
 function isSlotBooked(date,slot){
-  if(slot !== '金曜部活内')return false;
+  if(!slot.includes('部活中'))return false;
 
   const matchData = getRankMatchData();
   if(matchData.length === 0){
     return false;
   }
 
-  let sameDayCount = 0;
+  let bookedFlag = false;
   matchData.forEach((row) => {
     if((new Date(row[MATCH_DATE_COLUMN])).getTime() !== date.getTime())return;
-    if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他')return;
-    sameDayCount += 1;
-  })
-
-  if(sameDayCount >= FRIDAY_MATCH_NUMBER){
-    return true;
-  }
-
-  return false;
-}
-
-// 金曜日のマッチが何試合既に入っているかを数えて次が何試合目かを返す関数
-function countFridayMatch(date){
-  const matchData = getRankMatchData();
-  if(matchData.length === 0){
-    return 1;
-  }
-
-  let sameDayCount = 0;
-  matchData.forEach((row) => {
-    if((new Date(row[MATCH_DATE_COLUMN])).getTime() !== date.getTime())return;
-    if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他')return;
-    sameDayCount += 1;
-  })
-
-  return sameDayCount + 1;
-}
-
-// 金曜の１、２試合目が無くなったらその後にあった試合を詰める関数
-function narrowSchedule(date,matchNumber){
-  const matchData = getRankMatchData();
-  matchData.forEach((row,idx) => {
-    if((new Date(row[MATCH_DATE_COLUMN])).getTime() !== date.getTime())return;
-    if(row[MATCH_TIMESLOT_COLUMN] === '部活時間外' || row[MATCH_TIMESLOT_COLUMN] === 'その他')return;
-    if(Number(row[MATCH_TIMESLOT_COLUMN][4]) > matchNumber){
-      rankMatchScheduleSheet.getRange(HEADER_ROW_OFFSET + 1 + idx,MATCH_TIMESLOT_COLUMN + 1).setValue('部活中(' + (Number(row[MATCH_TIMESLOT_COLUMN][4]) - 1) + '試合目)');
-      markRankMatchDirty();
+    if(row[MATCH_TIMESLOT_COLUMN] === slot){
+      bookedFlag = true;
     }
-    
   })
+
+  return bookedFlag;
 }
 
 //この組み合わせの試合が可能か判定する関数
@@ -658,16 +597,7 @@ function pushNewMatch(applicant,opponent,date,slot,canUseModification,formSubmit
 
   const submitTime = formSubmittedDate ? formSubmittedDate : new Date();
 
-  let slotString;
-
-  if(slot === '部活時間外' || slot === 'その他'){
-    slotString = slot;
-  }else{
-    const nextMatchNumber = countFridayMatch(date);
-    slotString = '部活中(' + nextMatchNumber + '試合目)';
-  }
-
-  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slotString,'','','','','',modificationFlag,submitTime,'']);
+  rankMatchScheduleSheet.appendRow([applicantID,applicantName,opponentID,opponentName,date,slot,'','','','','',modificationFlag,submitTime,'']);
   markRankMatchDirty();
   manageChallenge(applicantID,true,isMale,responseSheet,responseRow);
 }
@@ -951,20 +881,20 @@ function sortRankMatchSchedule(){
 
 //フォームのプルダウンを変更する関数
 function updateFormDropdown() {
-  const choices = [];
+  const playerChoices = [];
 
   const maleData = getMaleRankData();
   for (let i = 0; i < maleData.length; i++) {
     const studentID = maleData[i][PLAYER_ID_COLUMN];
     const studentName = maleData[i][PLAYER_NAME_COLUMN];
-    choices.push('(男) ' + studentName + ' (' + studentID + ')');
+    playerChoices.push('(男) ' + studentName + ' (' + studentID + ')');
   }
 
   const femaleData = getFemaleRankData();
   for (let i = 0; i < femaleData.length; i++) {
     const studentID = femaleData[i][PLAYER_ID_COLUMN];
     const studentName = femaleData[i][PLAYER_NAME_COLUMN];
-    choices.push('(女) ' + studentName + ' (' + studentID + ')');
+    playerChoices.push('(女) ' + studentName + ' (' + studentID + ')');
   }
   
   const matchSchedulingForm = FormApp.openById(MATCH_SCHEDULING_FORM_ID);
@@ -979,21 +909,37 @@ function updateFormDropdown() {
     var item = matchSchedulingItems[j];
     if(item.getTitle() === 'ランク戦を申し込む人' || item.getTitle() === 'ランク戦を受ける人'){
       const itemQuestion = item.asListItem();
-      itemQuestion.setChoiceValues(choices);
+      itemQuestion.setChoiceValues(playerChoices);
     }
   }
   for (let j = 0; j < matchResultItems.length; j++) {
     var item = matchResultItems[j];
     if(item.getTitle() === 'ランク戦を申し込んだ人' || item.getTitle() === 'ランク戦を受けた人'){
       const itemQuestion = item.asListItem();
-      itemQuestion.setChoiceValues(choices);
+      itemQuestion.setChoiceValues(playerChoices);
     }
   }
   for (let j = 0; j < matchResultCheckItems.length; j++) {
     var item = matchResultCheckItems[j];
     if(item.getTitle() === '誰に関する結果を確認するか' || item.getTitle() === '（任意）対戦相手'){
       const itemQuestion = item.asListItem();
-      itemQuestion.setChoiceValues(choices);
+      itemQuestion.setChoiceValues(playerChoices);
+    }
+  }
+
+  const matchTypeChoices = [];
+
+  for (let j = 1; j <= FRIDAY_MATCH_NUMBER; j++){
+    matchTypeChoices.push(`部活中(${j}試合目)`);
+  }
+  matchTypeChoices.push('部活時間外');
+  matchTypeChoices.push('その他');
+
+  for (let j = 0; j < matchSchedulingItems.length; j++) {
+    var item = matchSchedulingItems[j];
+    if(item.getTitle() === '時間帯' || item.getTitle() === '変更後の時間帯（新規リクエストの場合は空白）'){
+      const itemQuestion = item.asMultipleChoiceItem();
+      itemQuestion.setChoiceValues(matchTypeChoices);
     }
   }
 
